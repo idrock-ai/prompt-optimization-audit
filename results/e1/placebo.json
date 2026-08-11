@@ -1,0 +1,60 @@
+{
+ "dir": "results/e1",
+ "native": "ona_tili",
+ "contrast": "cot -> dspy_bootstrap",
+ "preregistered": false,
+ "rows": [
+  {
+   "subject": "matematika",
+   "is_native": false,
+   "cot_accuracy": 74.6,
+   "n_items": 228,
+   "mh_odds_ratio": 0.683,
+   "ci95": [
+    0.299,
+    1.454
+   ],
+   "models_agreeing": 1,
+   "models_comparable": 6
+  },
+  {
+   "subject": "fizika",
+   "is_native": false,
+   "cot_accuracy": 64.9,
+   "n_items": 228,
+   "mh_odds_ratio": 1.059,
+   "ci95": [
+    0.516,
+    2.164
+   ],
+   "models_agreeing": 2,
+   "models_comparable": 6
+  },
+  {
+   "subject": "tarix",
+   "is_native": false,
+   "cot_accuracy": 49.8,
+   "n_items": 450,
+   "mh_odds_ratio": 0.674,
+   "ci95": [
+    0.377,
+    1.163
+   ],
+   "models_agreeing": 2,
+   "models_comparable": 6
+  },
+  {
+   "subject": "ona_tili",
+   "is_native": true,
+   "cot_accuracy": 33.3,
+   "n_items": 600,
+   "mh_odds_ratio": 1.633,
+   "ci95": [
+    0.973,
+    2.792
+   ],
+   "models_agreeing": 4,
+   "models_comparable": 6
+  }
+ ]
+}

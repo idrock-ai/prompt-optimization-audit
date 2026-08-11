@@ -1,0 +1,146 @@
+{
+ "model": "gemma4:e4b",
+ "engine": "ollama",
+ "seed": 42,
+ "max_tokens": 512,
+ "train_cap": 40,
+ "cap_nonnative": 150,
+ "limit": null,
+ "smoke": false,
+ "test_by_subject": {
+  "fizika": 150,
+  "matematika": 150,
+  "ona_tili": 393,
+  "tarix": 150
+ },
+ "programs": {
+  "cot": {
+   "source": "zero-shot",
+   "n_demos": 0,
+   "reasoning_chars": [],
+   "reasoning_total": 0,
+   "payload_total": 0,
+   "n_compliant": 0
+  },
+  "dspy_bootstrap": {
+   "source": "loaded",
+   "path": "/home/newuu_3/native-language-erosion/results/e1/gemma4_e4b_bootstrap.json",
+   "n_demos": 4,
+   "reasoning_chars": [
+    782,
+    547,
+    604,
+    590
+   ],
+   "reasoning_total": 2523,
+   "payload_total": 3565,
+   "n_compliant": 0
+  }
+ },
+ "conditions": {
+  "cot": {
+   "deployment": {
+    "overall": 44.0,
+    "by_subject": {
+     "fizika": {
+      "total": 150,
+      "correct": 88,
+      "accuracy": 58.7
+     },
+     "matematika": {
+      "total": 150,
+      "correct": 99,
+      "accuracy": 66.0
+     },
+     "ona_tili": {
+      "total": 393,
+      "correct": 118,
+      "accuracy": 30.0
+     },
+     "tarix": {
+      "total": 150,
+      "correct": 66,
+      "accuracy": 44.0
+     }
+    }
+   },
+   "rescue": {
+    "overall": 45.1,
+    "by_subject": {
+     "fizika": {
+      "total": 150,
+      "correct": 93,
+      "accuracy": 62.0
+     },
+     "matematika": {
+      "total": 150,
+      "correct": 100,
+      "accuracy": 66.7
+     },
+     "ona_tili": {
+      "total": 393,
+      "correct": 121,
+      "accuracy": 30.8
+     },
+     "tarix": {
+      "total": 150,
+      "correct": 66,
+      "accuracy": 44.0
+     }
+    }
+   }
+  },
+  "dspy_bootstrap": {
+   "deployment": {
+    "overall": 37.4,
+    "by_subject": {
+     "fizika": {
+      "total": 150,
+      "correct": 68,
+      "accuracy": 45.3
+     },
+     "matematika": {
+      "total": 150,
+      "correct": 91,
+      "accuracy": 60.7
+     },
+     "ona_tili": {
+      "total": 393,
+      "correct": 97,
+      "accuracy": 24.7
+     },
+     "tarix": {
+      "total": 150,
+      "correct": 59,
+      "accuracy": 39.3
+     }
+    }
+   },
+   "rescue": {
+    "overall": 42.1,
+    "by_subject": {
+     "fizika": {
+      "total": 150,
+      "correct": 79,
+      "accuracy": 52.7
+     },
+     "matematika": {
+      "total": 150,
+      "correct": 97,
+      "accuracy": 64.7
+     },
+     "ona_tili": {
+      "total": 393,
+      "correct": 119,
+      "accuracy": 30.3
+     },
+     "tarix": {
+      "total": 150,
+      "correct": 60,
+      "accuracy": 40.0
+     }
+    }
+   }
+  }
+ }
+}

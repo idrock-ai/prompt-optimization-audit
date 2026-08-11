@@ -135,3 +135,33 @@ def load_public(csv_path: str = PUBLIC_CSV, benchmark: str = DEFAULT_DATASET,
 def replication_onatili() -> list:
     """Frozen E4 replication set: all deduped public ona_tili items."""
     return [to_example(r) for r in load_public() if r["subject"] == "ona_tili"]
+
+
+def replication_all(cap_nonnative: int | None = None, seed: int = 2026,
+                    native: str = "ona_tili") -> list:
+    """Frozen replication set across ALL FOUR subjects (E9).
+
+    E4 used the ona_tili slice only, because a within-subject protocol has no use for
+    the others. A powered CROSS-subject test needs both strata: the native subject for
+    the absolute McNemar, and the non-native subjects for the differential odds ratio.
+    The public corpus supplies 393 / 504 / 727 / 404 usable items
+    (ona_tili / tarix / matematika / fizika).
+
+    `cap_nonnative` caps each NON-native subject to that many items, so a run can be
+    sized to the GPU budget without ever thinning the native subject the primary
+    endpoint is measured on. Capping is a deterministic shuffle under `seed`, taken
+    once over the whole subject so it does not depend on how many subjects are kept."""
+    rows = load_public()
+    keep, rng = [], random.Random(seed)
+    by_subject: dict[str, list] = {}
+    for r in rows:
+        by_subject.setdefault(r["subject"], []).append(r)
+    for subject in sorted(by_subject):
+        items = by_subject[subject]
+        if subject != native and cap_nonnative is not None and len(items) > cap_nonnative:
+            items = sorted(items, key=lambda r: r["qid"])
+            rng.shuffle(items)
+            items = items[:cap_nonnative]
+        keep += items
+    keep.sort(key=lambda r: (r["subject"], r["qid"]))
+    return [to_example(r) for r in keep]

@@ -45,6 +45,20 @@ def decompose_dir(d, subject="ona_tili", cond_a="cot", cond_b="dspy_bootstrap"):
         out["pooled"][name + "_p"] = round(mcnemar_exact(b_, c_), 4)
         out["pooled"][name] = {"b": b_, "c": c_, "n": len(prs)}
     out["pooled"]["b"], out["pooled"]["c"] = flips(pooled_pairs)
+
+    # How much of the harm the format route actually accounts for. Reported explicitly
+    # because it is the number that bounds the mechanism's claim: a mechanism that
+    # explains a minority of the harmful flips is a real mechanism, but it is not the
+    # whole story, and a reader should not have to derive that share from a figure.
+    tot = collections.Counter()
+    for r in out["per_model"].values():
+        tot.update(r["flips"])
+    harmful = sum(tot.values())
+    fmt = tot["truncation"] + tot["format_drift"]
+    out["pooled"]["flip_classes"] = dict(tot)
+    out["pooled"]["harmful_flips"] = harmful
+    out["pooled"]["format_flips"] = fmt
+    out["pooled"]["format_share_pct"] = round(100 * fmt / harmful, 1) if harmful else None
     return out
 
 

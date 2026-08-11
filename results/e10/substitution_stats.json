@@ -1,0 +1,125 @@
+{
+ "dir": "results/e10",
+ "subject": "ona_tili",
+ "per_model": {
+  "gemma4:e4b": {
+   "cot": 30.0,
+   "vanilla": 25.0,
+   "compliant": 30.0,
+   "random_compliant": 30.666666666666668,
+   "random_noncompliant": 30.333333333333332,
+   "constraint_effect": 0.3,
+   "substitution_effect": 5.3,
+   "arms": {
+    "random_compliant": [
+     "random_compliant_s0",
+     "random_compliant_s1",
+     "random_compliant_s2"
+    ],
+    "random_noncompliant": [
+     "random_noncompliant_s0",
+     "random_noncompliant_s1",
+     "random_noncompliant_s2"
+    ]
+   }
+  },
+  "qwen3.5:4b": {
+   "cot": 33.0,
+   "vanilla": 28.0,
+   "compliant": 31.0,
+   "random_compliant": 30.333333333333332,
+   "random_noncompliant": 30.666666666666668,
+   "constraint_effect": -0.3,
+   "substitution_effect": 2.7,
+   "arms": {
+    "random_compliant": [
+     "random_compliant_s0",
+     "random_compliant_s1",
+     "random_compliant_s2"
+    ],
+    "random_noncompliant": [
+     "random_noncompliant_s0",
+     "random_noncompliant_s1",
+     "random_noncompliant_s2"
+    ]
+   }
+  },
+  "qwen3.5:9b": {
+   "cot": 36.0,
+   "vanilla": 31.0,
+   "compliant": 34.0,
+   "random_compliant": 34.333333333333336,
+   "random_noncompliant": 30.666666666666668,
+   "constraint_effect": 3.7,
+   "substitution_effect": -0.3,
+   "arms": {
+    "random_compliant": [
+     "random_compliant_s0",
+     "random_compliant_s1",
+     "random_compliant_s2"
+    ],
+    "random_noncompliant": [
+     "random_noncompliant_s0",
+     "random_noncompliant_s1",
+     "random_noncompliant_s2"
+    ]
+   }
+  },
+  "qwen3.6:27b": {
+   "cot": 34.0,
+   "vanilla": 30.0,
+   "compliant": 30.0,
+   "random_compliant": 33.666666666666664,
+   "random_noncompliant": 36.333333333333336,
+   "constraint_effect": -2.7,
+   "substitution_effect": 6.3,
+   "arms": {
+    "random_compliant": [
+     "random_compliant_s0",
+     "random_compliant_s1",
+     "random_compliant_s2"
+    ],
+    "random_noncompliant": [
+     "random_noncompliant_s0",
+     "random_noncompliant_s1",
+     "random_noncompliant_s2"
+    ]
+   }
+  }
+ },
+ "constraint_effect": {
+  "mean": 0.25,
+  "positive": 2,
+  "n_models": 4,
+  "per_model": [
+   0.3,
+   -0.3,
+   3.7,
+   -2.7
+  ]
+ },
+ "substitution_effect": {
+  "mean": 3.5,
+  "positive": 3,
+  "n_models": 4,
+  "per_model": [
+   5.3,
+   2.7,
+   -0.3,
+   6.3
+  ]
+ },
+ "pooled": {
+  "constraint": {
+   "b": 126,
+   "c": 129,
+   "p": 0.9004
+  },
+  "substitution": {
+   "b": 105,
+   "c": 147,
+   "p": 0.0097
+  }
+ },
+ "verdict": "SUBSTITUTION dominates -- the fix is not working through compliance and our account of it is wrong"
+}

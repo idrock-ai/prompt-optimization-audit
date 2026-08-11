@@ -11,3 +11,16 @@ docs/**/.DS_Store
 # Internal working files, not part of the released artifact.
 TODO.md
 docs/superpowers/
+
+# LaTeX build intermediates (main.bbl IS tracked -- arXiv does not run BibTeX)
+paper/*.aux
+paper/*.log
+paper/*.blg
+paper/*.out
+paper/*.xdv
+paper/neurips/*.aux
+paper/neurips/*.log
+paper/neurips/*.blg
+paper/neurips/*.out
+paper/neurips/*.xdv
+.pytest_cache/

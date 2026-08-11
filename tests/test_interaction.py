@@ -232,3 +232,51 @@ def test_zero_discordance_model_flagged_as_uninformative(tmp_path):
     assert out["per_model"]["real"]["discordant_pairs"] == 8
     # the no-op must not move the pooled estimate
     assert out["mh_odds_ratio"] == pytest.approx(9.0)
+
+
+# --- subject-TYPE grouping (knowledge vs reasoning) -------------------------------
+
+def _gitem(cond, qid, subject, is_correct):
+    return {"model": "m", "condition": cond, "subject": subject, "qid": qid,
+            "correct": "A", "is_correct": is_correct, "rescue_correct": is_correct,
+            "predicted": "A", "parse_error": False, "truncated": False}
+
+
+def test_group_label_pools_subjects_into_one_arm(tmp_path):
+    """Passing a collection makes the contrast group-vs-rest. Two knowledge subjects
+    each losing 4 and gaining 1 must pool to 8/2 against the reasoning arm -- i.e. the
+    grouped run is the same estimator with a coarser label, not a different one."""
+    rows = []
+    for subj in ("ona_tili", "tarix"):            # 4 lost, 1 gained each -> 8/2
+        for q in range(5):
+            rows += [_gitem("cot", f"{subj}{q}", subj, 1 if q < 4 else 0),
+                     _gitem("dspy_bootstrap", f"{subj}{q}", subj, 0 if q < 4 else 1)]
+    for q in range(10):                           # reasoning: 2 lost, 8 gained
+        rows += [_gitem("cot", f"r{q}", "matematika", 1 if q < 2 else 0),
+                 _gitem("dspy_bootstrap", f"r{q}", "matematika", 0 if q < 2 else 1)]
+    (tmp_path / "m_items.jsonl").write_text("\n".join(json.dumps(r) for r in rows))
+
+    g = analyse(str(tmp_path), ["ona_tili", "tarix"], n_boot=200)
+    assert g["pooled"]["native_lost"] == 8 and g["pooled"]["native_gained"] == 2
+    assert g["pooled"]["other_lost"] == 2 and g["pooled"]["other_gained"] == 8
+    assert g["mh_odds_ratio"] == 16.0             # (8*8)/(2*2)
+    # the label is recorded as a sorted list, so a grouped run says what it pooled
+    assert g["native"] == ["ona_tili", "tarix"]
+
+
+def test_single_subject_string_behaviour_is_unchanged(tmp_path):
+    """A one-element group and the bare string must agree exactly: the generalisation
+    must not perturb any single-subject number already printed in the paper."""
+    rows = []
+    for q in range(6):
+        rows += [_gitem("cot", f"n{q}", "ona_tili", 1 if q < 4 else 0),
+                 _gitem("dspy_bootstrap", f"n{q}", "ona_tili", 0 if q < 4 else 1)]
+    for q in range(6):
+        rows += [_gitem("cot", f"o{q}", "tarix", 1 if q < 2 else 0),
+                 _gitem("dspy_bootstrap", f"o{q}", "tarix", 0 if q < 2 else 1)]
+    (tmp_path / "m_items.jsonl").write_text("\n".join(json.dumps(r) for r in rows))
+
+    as_str = analyse(str(tmp_path), "ona_tili", n_boot=200)
+    as_list = analyse(str(tmp_path), ["ona_tili"], n_boot=200)
+    assert as_str["mh_odds_ratio"] == as_list["mh_odds_ratio"]
+    assert as_str["pooled"] == as_list["pooled"]

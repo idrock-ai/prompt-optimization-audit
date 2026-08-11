@@ -17,16 +17,37 @@ bootstrapping, the odds that the change is harmful, for native vs non-native ite
     answer the same items -- the naive Fisher p treats those repeats as independent and
     is anti-conservative.
 
+`--native` also accepts a COMMA-SEPARATED GROUP of subjects, which turns the same
+estimator into a subject-TYPE contrast (e.g. knowledge vs reasoning). That is the
+contrast the paper's headline claim asserts: reporting "reasoning improved (p=.029)"
+next to "knowledge did not (p=.150)" is two marginal tests, and the difference between
+a significant and a non-significant result is not itself significant. Grouping the label
+estimates the difference directly, on the same strata and the same bootstrap.
+
 NOT PRE-REGISTERED. The pre-specified endpoint is the absolute native-subject McNemar
 (analysis/decompose.py); this is a secondary analysis and must be reported as such.
 
 Usage: python analysis/interaction.py results/e7 --native Turkish_Language_and_Literature
+       python analysis/interaction.py results/e9 --native ona_tili,tarix   # subject type
 """
 import argparse, glob, json, random, sys
 sys.path.insert(0, ".")
 from src.stats import fisher_exact_2x2, mantel_haenszel_or
 
 COND_A, COND_B = "cot", "dspy_bootstrap"   # defaults; override per call / via CLI
+
+
+def in_group(subject, native):
+    """True if `subject` carries the label under test. `native` is either a single
+    subject name or a collection of them; a collection makes the contrast group-vs-rest
+    (subject TYPE) instead of subject-vs-rest, with everything else unchanged."""
+    return subject == native if isinstance(native, str) else subject in set(native)
+
+
+def label_of(native):
+    """JSON-serialisable form of the label, so a grouped run records which subjects it
+    pooled rather than an unordered set repr."""
+    return native if isinstance(native, str) else sorted(native)
 
 
 def load_traces_dir(d):
@@ -99,7 +120,8 @@ def cell_contributions(data, native, cond_a=COND_A, cond_b=COND_B):
                 continue
             lost = int(bool(a["is_correct"]) and not b["is_correct"])
             gained = int(not a["is_correct"] and bool(b["is_correct"]))
-            rows.setdefault(q, []).append((model, a["subject"] == native, lost, gained))
+            rows.setdefault(q, []).append(
+                (model, in_group(a["subject"], native), lost, gained))
     return rows
 
 
@@ -136,7 +158,7 @@ def analyse(d, native, n_boot=4000, seed=42, cond_a=COND_A, cond_b=COND_B,
     qids = sorted(rows)
     per_model = strata_from(rows, qids)
 
-    out = {"dir": d, "native": native, "contrast": f"{cond_a} -> {cond_b}",
+    out = {"dir": d, "native": label_of(native), "contrast": f"{cond_a} -> {cond_b}",
            "n_models": len(data), "n_items": len(qids), "excluded_models": excluded,
            "per_model": {}, "preregistered": False}
     for m, (bn, cn, bo, co) in sorted(per_model.items()):
@@ -199,16 +221,22 @@ def main():
     ap.add_argument("--cond-b", default=COND_B, help="e.g. dspy_mipro for E8")
     ap.add_argument("--exclude", default="",
                     help="comma list of models to drop (e.g. ones the optimizer no-oped)")
+    ap.add_argument("--out", default=None,
+                    help="destination JSON (default <dir>/interaction.json); set it for "
+                         "grouped runs so they do not overwrite the single-subject one")
     a = ap.parse_args()
     ex = [m.strip() for m in a.exclude.split(",") if m.strip()]
-    out = analyse(a.dir, a.native, n_boot=a.boot, cond_a=a.cond_a, cond_b=a.cond_b,
+    # a comma in --native means a subject GROUP: the contrast becomes group-vs-rest
+    parts = [x.strip() for x in a.native.split(",") if x.strip()]
+    native = parts[0] if len(parts) == 1 else parts
+    out = analyse(a.dir, native, n_boot=a.boot, cond_a=a.cond_a, cond_b=a.cond_b,
                   exclude_models=ex)
     if out is None:
         sys.exit(f"no *_items.jsonl in {a.dir}")
 
-    print(f"=== differential harm, native={a.native}, {out['contrast']} "
+    print(f"=== differential harm, label={'+'.join(parts)}, {out['contrast']} "
           f"({out['n_models']} models, {out['n_items']} items) [NOT pre-registered]")
-    print(f"{'model':14} {'nat L/G':>10} {'nat harm%':>10} "
+    print(f"{'model':14} {'lbl L/G':>10} {'lbl harm%':>10} "
           f"{'oth L/G':>10} {'oth harm%':>10} {'OR':>7}")
     for m, r in out["per_model"].items():
         nat = "{}/{}".format(r["native_lost"], r["native_gained"])
@@ -216,7 +244,7 @@ def main():
         print(f"{m:14} {nat:>10} {str(r['native_harm_share']):>10} "
               f"{oth:>10} {str(r['other_harm_share']):>10} {str(r['odds_ratio']):>7}")
     p = out["pooled"]
-    print(f"\npooled  native {p['native_lost']}/{p['native_gained']}  "
+    print(f"\npooled  label {p['native_lost']}/{p['native_gained']}  "
           f"other {p['other_lost']}/{p['other_gained']}  "
           f"Fisher p={p['fisher_p_unclustered']} (unclustered, anti-conservative)")
     print(f"Mantel-Haenszel OR (model-stratified) = {out['mh_odds_ratio']}")
@@ -234,7 +262,7 @@ def main():
               f"contributed ZERO discordant pairs and are structurally uninformative "
               f"(not measured nulls): {', '.join(out['uninformative_models'])}")
 
-    dest = f"{a.dir}/interaction.json"
+    dest = a.out or f"{a.dir}/interaction.json"
     json.dump(out, open(dest, "w"), indent=1)
     print(f"\nwrote {dest}")
 

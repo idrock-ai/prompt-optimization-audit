@@ -1,0 +1,713 @@
+% GENERATED FILE -- DO NOT EDIT.
+% Produced from ../main.tex by paper/make_neurips.py. Edit that source instead.
+%
+% Venue: TAE (Trust-AI-Eval), NeurIPS 2026 workshop.
+%   double-blind  -> the style file prints "Anonymous Author(s)" automatically
+%   non-archival  -> compatible with a later ACL/ARR submission of the same work
+%   8 pages, excluding references and appendices
+\documentclass{article}
+
+\usepackage[dblblindworkshop]{neurips_2026}
+\workshoptitle{TAE (Trust-AI-Eval): Can We Trust AI Evaluation?}
+
+% --- verbatim from the official neurips_2026.tex template ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{nicefrac}
+\usepackage{microtype}
+\usepackage{xcolor}
+% --- added by this paper ---
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{inconsolata}
+
+\newcommand{\ona}{\textsc{ona\_tili}}
+\newcommand{\tarix}{\textsc{tarix}}
+\newcommand{\bsfs}{\textsc{BootstrapFewShot}}
+\newcommand{\bsfsS}{\textsc{Bootstrap}}   % table-width short form of \bsfs
+
+\title{What Aggregate Accuracy Hides:\\
+A Powered Subject-Level Audit of Prompt Optimization}
+
+% author block removed: double-blind submission
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Automatic prompt optimizers are marketed on aggregate accuracy and increasingly applied
+to low-resource languages. On a subject-partitioned Uzbek university-entrance benchmark
+we run the audit that aggregate accuracy prevents: with $5{,}058$ paired items from a
+frozen corpus never used in development, \textsc{DSPy}'s \bsfs{} improves reasoning
+subjects ($+2.3$, $p{=}0.029$) and does not improve knowledge subjects ($-1.2$,
+$p{=}0.15$), leaving overall accuracy flat ($+0.1$, $p{=}0.92$). The reasoning gain and
+the knowledge shortfall offset each other, so a practitioner reading one number sees
+nothing at all. Tested directly rather than as two marginal tests, the reallocation is
+significant: a knowledge-versus-reasoning odds ratio of $1.40$ $[1.08, 1.81]$.
+The users' own language is simply a knowledge subject: it is not distinguishable from
+the benchmark's other knowledge subject, which fares marginally worse ($-1.1$ vs.\
+$-1.4$). We report this against our own initial finding, which the same data overturns.
+At $n{\approx}100$ per model---the scale at which subject-level audits are normally
+run---we measured a native-language-specific effect ($p{=}0.011$; odds ratio $2.27$
+against non-native items, with the benchmark's other knowledge subject at a clean
+$1.04$). Powered on held-out data it dissolves: the odds ratio falls to $1.25$
+$[0.98, 1.61]$ and the other knowledge subject rises to $1.16$, statistically
+indistinguishable. A second correction follows the same pattern: a one-line
+brevity-constraint repair we proposed turns out to be inert ($p{=}0.90$). Substituting
+different correct demonstrations does help ($p{=}0.0097$), which would indict
+correctness-based selection itself---but we show that a fixed shuffle seed makes six
+models select only eight distinct demonstrations between them, so that contrast rests on
+one \bsfs{} draw and we report it as an observation rather than a finding. We release the
+harness, per-item logs, and a one-command verifier for every number.
+\end{abstract}
+
+\section{Introduction}
+Chain-of-thought prompting~\citep{wei2022cot} helps mainly on math and symbolic
+reasoning~\citep{sprague2025cot} and can hurt elsewhere~\citep{liu2025mind}. Layered on
+top, automatic prompt optimizers---most prominently \textsc{DSPy}~\citep{khattab2024dspy}
+with its \bsfs{} teleprompter, which retains as few-shot demonstrations only training
+examples the model itself answers correctly---are sold as turnkey accuracy boosters and
+increasingly applied to low-resource languages.
+
+They are also evaluated the way they are sold: on one aggregate number. This paper asks
+what that number conceals, on a benchmark whose subject partition makes the question
+answerable, and at a sample size that makes the answer stable.
+
+\paragraph{The finding.} \bsfs{} does not raise accuracy uniformly. It raises
+\emph{reasoning}-subject accuracy and leaves \emph{knowledge}-subject accuracy where it
+was, and on this benchmark the two move the aggregate by a tenth of a point between them
+(\S\ref{sec:powered}). Aggregate accuracy is not merely a coarse summary here; it is
+blind by construction. Any deployment whose users care disproportionately about the
+knowledge half---which, for a national-language application, is the whole point---is
+paying for a gain it does not receive.
+
+\paragraph{The correction.} Our own first pass through this data reached a sharper and
+more alarming conclusion: that the harm was specific to the \emph{native language}. At
+$n{\approx}100$ items per model, that finding looked solid---a significant pooled
+effect, a $2.27$ odds ratio against non-native items, and a placebo rotation in which
+the benchmark's other knowledge subject sat at $1.04$. Re-run on a frozen corpus at four
+times the scale, it dissolves (\S\ref{sec:powered}). The native subject and the other
+knowledge subject become indistinguishable. We report both, because the gap between them
+is the most useful thing we found: subject-level audits at the scale they are normally
+run at can manufacture a language-specific story out of a subject-type effect.
+
+\paragraph{A second correction, same shape.} We proposed a one-line repair---require
+bootstrapped demonstrations to satisfy the prompt's own brevity instruction---and
+measured it recovering most of the loss. An ablation separating the two things that
+repair changes at once shows the constraint itself is inert ($p{=}0.90$); what helps is
+substituting different demonstrations. That would indict correctness-based selection,
+except that the optimizer's selection turns out to be near-degenerate: a fixed pool
+ordering leads six models to choose only eight distinct demonstrations between them, so
+the contrast compares one \bsfs{} draw against several random ones (\S\ref{sec:demos}).
+We report it as an observation, name the experiment that would settle it, and do not
+build on it.
+
+\paragraph{What survives unchanged.} A format route from optimizer to failure is real
+and causally verified: correctness-selection imports verbose demonstrations, a fixed
+decoding budget truncates them, and raising the budget improves accuracy in exactly the
+models that truncate and not in a zero-truncation control (\S\ref{sec:budget}). It
+accounts for $17.6\%$ of harmful flips at scale---a genuine and repairable route, and a
+minority of the effect.
+
+\section{Related Work}\label{sec:related}
+\paragraph{CoT and prompt optimization.} CoT's gains concentrate on math and symbolic
+tasks~\citep{sprague2025cot}; it can reduce accuracy where deliberation hurts
+humans~\citep{liu2025mind}, and its marginal value on strong models is
+shrinking~\citep{meincke2025decreasing}. \textsc{DSPy}~\citep{khattab2024dspy} and
+\textsc{MIPROv2}~\citep{opsahlong2024mipro} self-bootstrap demonstrations.
+\citet{sarmah2024} conjectured that teleprompters over-rely on examples the model already
+answers well. We find that skew is an artifact of comparing against the wrong baseline
+(\S\ref{sec:budget}): what the selected demonstrations share is verbosity, not subject.
+\paragraph{Format restrictions and budgets.} Format constraints degrade reasoning
+performance~\citep{tam2024format}, and tokenizers price languages
+unequally~\citep{petrov2023tokenizer} with accuracy consequences across low-resource
+languages~\citep{lundin2025tokentax}. We connect this to prompt optimization: the
+optimizer \emph{generates} format pressure, which fixed budgets convert into
+failures---though through input length and induced verbosity rather than output-side
+fertility (\S\ref{sec:regimes}).
+\paragraph{Cross-lingual reasoning dynamics.} A parallel literature asks which language
+multilingual models reason \emph{in}~\citep{wendler2024llamas,schut2025english,
+zhong2024english}, and how language-centric pretraining shapes
+reasoning~\citep{park2025collapse,tran2025pivoted}. Our powered result reduces the pull
+of these accounts for this phenomenon: what we observe separates subject \emph{types},
+not languages.
+\paragraph{Disparate impact and evaluation scale.} \citet{zhu2022rich} show
+semi-supervised learning can help high-baseline subgroups at low-baseline subgroups'
+expense, masked by averages. Our result is the prompt-optimization analogue, with the
+subgroup axis turning out to be subject type. Native Turkic benchmarks include
+TUMLU~\citep{tumlu2025}, KazMMLU~\citep{kazmmlu2025} and
+TurkishMMLU~\citep{turkishmmlu2024}; DTM~\citep{dtm2026} provides the subject partition
+our analyses require.
+
+\section{Setup}\label{sec:setup}
+\paragraph{Data.} DTM~\citep{dtm2026}: $1{,}000$ four-option Uzbek questions
+(\ona{}, Uzbek grammar and literature, $400$; \tarix{}, history, $300$; mathematics
+$150$; physics $150$). Seeded stratified split (train $500$/dev $249$/test $251$).
+Eight rows of the release file carry nulled answers: two fall in the test split and were
+recovered from run logs, six are excluded. \textbf{Replication corpus:} the DTM~2019
+public release contributes $2{,}028$ deduplicated items across the same four subjects
+($393$ \ona{}, $504$ \tarix{}, $727$ mathematics, $404$ physics), never used in any
+development decision, with its protocol frozen before first model contact. This is the
+evaluation set for \S\ref{sec:powered}.
+\paragraph{Models and engines.} Six open instruction-tuned LLMs spanning
+\textsc{gemma-4} (\textsc{e4b}, \textsc{31b}) and \textsc{qwen-3.5/3.6} ($4$--$27$B),
+served with Ollama at 4-bit (Q4\_K\_M) on an NVIDIA DGX Spark, plus vLLM at bf16 for the
+three large models and an Apple-silicon replication. Greedy decoding,
+\texttt{max\_tokens} $512$ unless manipulated.
+\paragraph{Conditions.} \textbf{cot} (brevity-constrained zero-shot CoT: ``at most two
+sentences''), \textbf{bootstrap} (\bsfs{} on the CoT module, $4$ demonstrations,
+correctness metric), \textbf{bootstrap-compliant} (the metric additionally requires the
+demonstration to satisfy the brevity instruction), and \textbf{random-$k$} (four
+demonstrations drawn uniformly from the model's own correct traces, \S\ref{sec:demos}).
+\paragraph{Instrumentation.} Every generation logs raw completion text, token counts,
+finish reason and a parse-failure flag. We score two ways: \emph{deployment} (a parse
+failure is wrong---what a user experiences) and \emph{knowledge} (items where either
+condition truncated or failed to parse are excluded).
+\paragraph{Statistics.} Paired exact binomial McNemar throughout, Holm-corrected within
+each contrast family. Subject contrasts use a Mantel--Haenszel odds ratio stratified by
+model, with intervals from a bootstrap resampling \emph{items} as whole clusters, since
+all models answer the same items. Every number regenerates from committed per-item logs
+by a single command in the released harness.
+
+\section{What the Aggregate Hides}\label{sec:powered}
+
+\begin{table}[t]\centering\small
+\caption{The powered audit: CoT${\to}$\bsfsS{} on the frozen replication corpus, six
+models, $5{,}058$ paired items. Reasoning subjects gain significantly; knowledge
+subjects do not; the aggregate is flat to a tenth of a point. The native subject is not
+distinguishable from the benchmark's other knowledge subject.}
+\label{tab:powered}
+\begin{tabular}{lrrrrr}
+\toprule
+Subject & CoT & \bsfsS{} & $\Delta$ & $n$ & $p$ \\
+\midrule
+\ona{} \emph{(native)} & 35.8 & 34.8 & $-1.1$ & 2358 & .283 \\
+\tarix{} \emph{(history)} & 55.9 & 54.4 & $-1.4$ & \phantom{0}900 & .344 \\
+physics                & 69.6 & 71.1 & $+1.6$ & \phantom{0}900 & --- \\
+mathematics            & 69.9 & 73.0 & $+3.1$ & \phantom{0}900 & --- \\
+\midrule
+knowledge (both)       & 41.4 & 40.2 & $-1.2$ & 3258 & .150 \\
+\textbf{reasoning}     & 69.7 & 72.1 & $\mathbf{+2.3}$ & 1800 & \textbf{.029} \\
+\midrule
+\textbf{overall}       & 51.5 & 51.5 & $\mathbf{+0.1}$ & 5058 & .925 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+We evaluated the demonstrations \bsfs{} selects---the identical compiled programs, not a
+fresh compile---against the frozen four-subject replication corpus, for all six models
+(Table~\ref{tab:powered}). Three things follow.
+
+\paragraph{The optimizer works, on half the benchmark.} Reasoning subjects gain $+2.3$
+points ($b{=}155$, $c{=}197$, $n{=}1800$, $p{=}0.029$). That is the effect \bsfs{} is
+sold on and it is real.
+
+\paragraph{Knowledge subjects do not benefit.} Pooled, they move $-1.2$ ($b{=}349$,
+$c{=}311$, $p{=}0.150$)---directionally negative, not significant. We state the
+conservative form: the optimizer does not \emph{help} knowledge subjects. Whether it
+mildly harms them is beyond this design's resolution, and we do not claim it.
+
+\paragraph{The aggregate is blind.} Overall accuracy moves $+0.1$ points
+($b{=}504$, $c{=}508$, $p{=}0.925$). The reasoning gain and the knowledge shortfall
+offset each other. A practitioner who reads the benchmark score sees a null result
+and concludes the optimizer did nothing; in fact it moved accuracy between subjects at a
+rate their aggregate cannot express. This is the paper's practical point, and it does
+not depend on any language-specific claim.
+
+\paragraph{The reallocation, tested directly.} A significant reasoning gain reported
+beside a non-significant knowledge null is two marginal tests, and the difference between
+them is not itself one. We therefore ran the differential estimator used throughout this
+paper with the label grouped by subject \emph{type}: conditional on an item changing
+correctness, are the odds it changed for the worse higher for knowledge items than for
+reasoning items? Pooled over six models it gives $1.40$ $[1.08, 1.81]$ (bootstrap
+$P(\mathrm{OR}{\le}1){=}0.008$; Table~\ref{tab:placebo}, last row). That is this paper's
+central claim as a single estimate, and unlike the native-versus-rest contrast it
+survives powering: the same estimator falls from $2.67$ to $1.40$ and still excludes $1$,
+where the native contrast falls from $2.27$ to $1.25$ and no longer does. The
+reallocation is the finding; the language was the coincidence.
+
+One weakness in it, of the kind this paper has learned to state. Mantel--Haenszel assumes
+a common odds ratio and these strata are heterogeneous: four models fall between $1.22$
+and $2.42$ while both gemma models invert ($0.59$, $0.66$). The interval summarises a
+direction four of six models share, not an effect all six express---and gemma4:e4b, one
+of the two that invert, is also the model whose format failures dominate
+\S\ref{sec:budget}.
+
+\paragraph{The reallocation begins before the optimizer.} Climbing the full prompting
+ladder on the benchmark split (means over six models, \ona{}/mathematics): direct
+answering $32.8/53.1$, CoT $33.3/74.6$, \bsfs{} $31.0/78.5$. Chain-of-thought alone buys
+mathematics $+21.5$ and the native subject $+0.5$; the optimizer adds a further $+3.9$ to
+mathematics and takes $-2.3$ from the native subject. The optimizer is not introducing
+the reallocation so much as extending a gradient that CoT already established---which is
+consistent with reasoning-subject demonstrations being the active ingredient, and with
+the aggregate having been uninformative for both rungs.
+
+\begin{table}[t]\centering\small
+\caption{The placebo rotation, before and after powering. The estimator asks: conditional
+on an item changing correctness, are the odds it changed for the worse higher for this
+subject than for the other three? At $n{\approx}100$ per model the native subject
+separates cleanly from the other knowledge subject; on the frozen corpus at $4\times$
+the scale they converge. What survives is a reasoning/knowledge split, and the last row
+estimates it directly: grouping the label by subject type attenuates under powering but
+retains an interval excluding $1$, where the native contrast does not.}
+\label{tab:placebo}
+\begin{tabular}{lcc}
+\toprule
+Subject & $n{\approx}100$/model & powered \\
+\midrule
+\ona{} \emph{(native)} & \textbf{2.27} $[1.37, 3.91]$ & \textbf{1.25} $[0.98, 1.61]$ \\
+\tarix{} \emph{(history)} & 1.04 $[0.57, 1.94]$ & 1.16 $[0.82, 1.64]$ \\
+physics & 0.44 $[0.20, 0.86]$ & 0.78 $[0.56, 1.09]$ \\
+mathematics & 0.47 $[0.20, 0.98]$ & 0.75 $[0.56, 1.02]$ \\
+\midrule
+native $-$ history gap & $1.23$ & $0.09$ \\
+\midrule
+knowledge vs.\ reasoning & \textbf{2.67} $[1.53, 5.05]$ & \textbf{1.40} $[1.08, 1.81]$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{The correction, and what produced it.} Our first pass used the benchmark's
+own test split---$100$ \ona{} items per model, the scale at which subject-level audits
+are normally run. There, \bsfs{} eroded \ona{} in five of six models ($75$ CoT-correct
+answers flipping wrong against $46$ the other way, $p{=}0.011$), and the comparative
+contrast gave an odds ratio of $2.27$ $[1.37, 3.91]$ against non-native items. We ran
+the obvious placebo---rotate the ``native'' label through every subject and re-run the
+identical estimator---and it passed: \tarix{}, the benchmark's other knowledge subject
+and the closest structural analogue to a language-and-literature subject, returned
+$1.04$ (Table~\ref{tab:placebo}, left).
+
+On the frozen corpus that separation disappears. The native subject falls to $1.25$
+$[0.98, 1.61]$ and \tarix{} rises to $1.16$ $[0.82, 1.64]$; the gap between them goes
+from $1.23$ to $0.09$. The absolute native effect is null on every scoring (deployment
+$p{=}0.283$; knowledge-scored $p{=}0.602$, direction reversed; rescue-parsed
+$p{=}0.755$). Meanwhile the reasoning subjects remain below $1$ on both scales. The
+signal was never native-versus-non-native; it was knowledge-versus-reasoning, plus
+enough sampling noise at $n{\approx}100$ to make the native subject look singular.
+
+We note that a subject-level audit is exactly where this failure mode is invisible.
+Nothing about the $n{\approx}100$ analysis was cutting corners: it was paired, exact,
+Holm-corrected, model-stratified, item-cluster-bootstrapped, and placebo-controlled. It
+was simply too small, and the placebo was too small along with it.
+
+
+
+Table~\ref{tab:allors} puts every odds ratio in the paper on one axis. The four
+estimates above $1.6$---across two languages, two serving stacks and two
+optimizers---all come from cells of at most $100$ native items per model. The single
+estimate built on $393$ is $1.25$. We do not think this is a coincidence about which
+settings happen to be harmful; we think it is what a small-sample contrast looks like
+when it is measured repeatedly.
+
+\paragraph{Per model, and what it costs to average.} Table~\ref{tab:permodel} breaks the
+audit out by model. Native accuracy falls in four of six, which on its own would be a
+weak claim. The informative column is the gap: qwen3.5:4b gains $4.2$ points overall
+while losing $2.0$ on the native subject, and qwen3.6:27b gains $1.5$ overall while
+losing $0.2$. A practitioner comparing aggregate scores across these models would rank
+them in an order almost unrelated to what their Uzbek-speaking users experience.
+
+\paragraph{One caveat we cannot fully separate.} The powered evaluation changes two
+things at once: more items, and \emph{different} items (a 2019 public release rather
+than the benchmark). Baseline accuracies are comparable across the two
+(\ona{} $35.8$ vs.\ ${\sim}33$; \tarix{} $55.9$ vs.\ $50.7$), so we do not think corpus
+shift explains the convergence, but the design cannot rule it out and we do not claim
+otherwise.
+
+\section{Which Demonstrations Do Harm}\label{sec:demos}
+% NOTE: the substitution contrast here is confounded by a shared pool-ordering seed;
+% it is reported as an observation, not a finding. See the paragraph on eight distinct
+% demonstrations before strengthening any claim in this section.
+
+\begin{table}[t]\centering\small
+\caption{Demonstration ablation on \ona{} (means over four models; random cells averaged
+over three seeds). Requiring brevity-compliance is inert. \bsfs{}'s own selection is the
+worst arm---below every random draw and below using no demonstrations---but that
+comparison rests on a single effective \bsfs{} draw shared across models, so we report it
+as an observation rather than a property of the selection rule.}
+\label{tab:substitution}
+\begin{tabular}{lrrr}
+\toprule
+Arm & reasoning & payload & \ona{} \\
+\midrule
+CoT (no demonstrations) & --- & \phantom{000}0 & \textbf{33.3} \\
+random, compliant       & 50\% & 1803 & 32.3 \\
+random, non-compliant   & 90\% & 3026 & 32.0 \\
+\bsfsS{} $+$ brevity & --- & 1842 & 31.3 \\
+\textbf{\bsfsS{} (vanilla)} & --- & 2373 & \textbf{28.5} \\
+\midrule
+\multicolumn{4}{l}{\emph{constraint} (rand.\ compl.\ vs.\ non-compl.)}\\
+\quad $b{=}126$, $c{=}129$ & \multicolumn{3}{r}{$p=0.900$} \\
+\multicolumn{4}{l}{\emph{substitution} (vanilla vs.\ rand.\ non-compl.)}\\
+\quad $b{=}105$, $c{=}147$ & \multicolumn{3}{r}{$\mathbf{p=0.0097}$} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+If correctness-selection is the vehicle, what does it transmit? We ran the ablation that
+separates the candidates (Table~\ref{tab:substitution}): four demonstrations drawn
+uniformly from each model's own correct CoT traces, three seeds per cell, split by
+whether they satisfy the prompt's brevity instruction, against \bsfs{}'s own picks.
+
+\paragraph{Not compliance.} The constraint contrast is a clean null ($p{=}0.900$). The
+repair we proposed---require the demonstration to satisfy the constraint it will
+teach---does not work through the constraint.
+
+\paragraph{Not subject mix, and not length.} The random non-compliant arm averages
+$90\%$ reasoning-subject demonstrations and a $3{,}026$-character payload---more skewed
+and more verbose than vanilla's $2{,}373$---and scores $32.0$, indistinguishable from the
+random compliant arm at $50\%$ and $1{,}803$. This independently reconfirms two earlier
+nulls of ours: a controlled experiment varying demonstration \emph{subject} mix
+(four models, no contrast significant) and a $2{\times}2$ varying subject $\times$ length
+(long-vs-short $b{=}82$, $c{=}79$, $p{=}0.875$). Neither what the demonstrations are
+about nor how long they are determines the outcome.
+
+\paragraph{An observation we cannot yet promote to a finding.} \bsfs{}'s own picks are the
+\emph{worst} arm in Table~\ref{tab:substitution}, at $28.5$: below every random draw
+($32.0$--$32.3$) and below using no demonstrations at all ($33.3$). Taken at face value
+($b{=}105$, $c{=}147$, $p{=}0.0097$) that would say correctness-selection picks
+worse-than-chance from among its own candidates---a claim about the selection rule.
+
+It does not yet support that claim, for a reason we discovered only after running the
+ablation. The training pool is shuffled with a fixed seed shared across models, and
+\bsfs{} keeps the first $k$ examples that pass, so every model walks the same queue.
+Across six models and $24$ demonstration slots the optimizer selected just \textbf{eight
+distinct questions}; two models selected identical sets, and most pairs overlap in two to
+three of four. The comparison in Table~\ref{tab:substitution} is therefore between
+\emph{one} \bsfs{} draw, inherited by every model, and several independent random draws.
+Its pooled $p$-value treats four models as independent evidence when the effective number
+of \bsfs{} draws is close to one. We cannot distinguish ``the selection rule is bad''
+from ``this particular draw was bad, and every model inherited it,'' and we do not claim
+the former.
+
+Resolving it needs a manipulation of the selection procedure rather than of the test set:
+recompiling \bsfs{} under several pool orderings per model and comparing the resulting
+distribution against the random-draw distribution. We have not run it, and we flag that
+adding test items would \emph{not} substitute for it---more items estimate the same
+single draw more precisely.
+
+\paragraph{What the shared draw shows on its own.} That eight-of-twenty-four figure is
+worth stating independently of the ablation. Six models spanning $4$B to $31$B parameters,
+each nominally self-selecting demonstrations tailored to itself, converge on eight
+questions---because selection is dominated by the ordering seed and by which items are
+easy enough for every model to answer, not by the model. It is also why we now read the
+apparent subject skew of \S\ref{sec:budget} as a property of one ordering rather than of
+correctness-selection.
+
+The constraint null is on firmer ground: both of its arms are random draws with three
+seeds each, so it is not exposed in the same way. It remains a null on $1{,}200$ paired
+observations---adequate to say the constraint does not help, not to bound how small a
+true effect could be.
+
+\section{The Format Route Is Causal, and a Minority}\label{sec:budget}
+
+
+One route from optimizer to failure is identifiable and repairable. The demonstrations
+\bsfs{} selects are the verbose ones---selected reasoning reaches $997$ characters per
+demonstration and $2{,}373$ per compiled prompt---so the compiled prompt contradicts its
+own brevity instruction, and under a fixed budget the inflated responses truncate.
+
+We record a correction here, because an earlier version of this analysis attributed that
+verbosity to subject skew. Measured against the wrong baseline, correctness-selection
+appears to over-sample reasoning subjects $2.3\times$ ($71\%$ of selected demonstrations
+against the benchmark's $30\%$). But the optimizer never sees the benchmark's subject
+mix: the training pool is capped per subject and is $50\%$ reasoning by construction.
+Against the pool it actually draws from, selection is $58\%$ reasoning across
+demonstration slots and $50\%$ across \emph{distinct} selected questions---essentially
+no subject over-selection at all. The verbosity of the selected demonstrations is real
+and is what matters here; their subject composition is not the reason for it.
+
+\paragraph{The budget is causal on the outcome.} Truncations fall
+$28{\to}16{\to}3{\to}0$ on gemma4:e4b as \texttt{max\_tokens} rises $256{\to}2048$
+(Table~\ref{tab:dose}), but that trend is a manipulation check---raising a cap
+mechanically reduces cap-hits. The causal question is accuracy. Pairing bootstrap runs
+item-by-item between the budget extremes, native accuracy improves in exactly the two
+models that truncate ($b{=}11$, $c{=}25$, $n{=}200$, $p{=}0.029$) and not in the
+zero-truncation control ($b{=}4$, $c{=}2$, $p{=}0.69$). The treated set is defined by
+truncation counts, not by outcome.
+
+\paragraph{And it is a minority of the effect.} Classifying every harmful flip on the
+powered corpus, $46$ of $262$ ($17.6\%$) are truncation-attributable and none are format
+drift; the remaining $216$ are well-formed, in-budget, correctly parsed answers that are
+simply wrong. The route is real---gemma4:e4b's parse failures rise $72{\to}223$ under
+vanilla bootstrapping---and it explains under a fifth of what happens.
+
+
+Figure~\ref{fig:decomp} shows where those failures sit: they concentrate in the two
+models that select the longest demonstrations, and are near-absent elsewhere. That is
+the scope condition on this route, and it is also why a format-side repair cannot
+address most of the effect.
+
+\section{Two Regimes, and Two Non-Results}\label{sec:regimes}
+
+\paragraph{Within-subject optimization is safe.} Bootstrapping demonstrations from
+\ona{} training items only, evaluated across six models and $n{=}3{,}822$ paired items,
+finds no erosion: the benchmark half shows a small improvement ($b{=}129$, $c{=}166$,
+$p{=}0.036$ uncorrected, positive in $6/6$ models) and the replication half is exactly
+null ($b{=}250$, $c{=}249$, $p{=}1.0$). The harm needs the cross-subject regime, where
+the optimizer can import demonstrations from elsewhere. A single-model pilot that
+suggested otherwise ($-7.2$, $p{=}0.045$, $n{=}250$) does not survive this.
+
+\paragraph{Precision is not the explanation, and cells are unstable.} Serving the three
+large models at bf16 rather than Q4 produces erosions of $-5$ on two of three, so the
+effect is not a quantization artifact---but every model's delta flips sign between
+precisions, because precision changes the correct-set and hence which demonstrations get
+selected. These are $n{=}100$ single-seed cells and we draw only the negative conclusion
+plus the actionable one: audits must run on the deployment configuration.
+
+\paragraph{Tokenizer fertility, corrected.} We hypothesised that Uzbek prose is
+token-expensive relative to math notation, making fixed budgets effectively smaller for
+\ona{}~\citep[cf.][]{petrov2023tokenizer,lundin2025tokentax}. The logged counts falsify
+it: math reasoning costs \emph{more} tokens than \ona{} reasoning, per character
+(${\sim}0.43$ vs.\ ${\sim}0.38$) and per item (${\sim}130$--$160$ vs.\ ${\sim}93$--$124$).
+The native subject is budget-fragile because its \emph{inputs} are longest (mean $337$
+characters vs.\ $156$ for math), not because its outputs are dear.
+
+\section{Generalization}\label{sec:travel}
+
+\paragraph{A second language.} We ran the identical protocol on
+\textsc{TurkishMMLU}~\citep{turkishmmlu2024} (Turkish Language and Literature against
+Mathematics, Physics and History; $65$ test items per subject, six models). The
+concealment reproduces in a starker form: aggregate accuracy rises $5.2$ points
+($66.4{\to}71.6$) while the native subject gains nothing ($58.5{\to}58.2$)---Mathematics
+$+9.7$, Physics $+7.2$, History $+4.1$. The absolute native effect is null
+($b{=}37$, $c{=}36$, $p{=}1.0$).
+
+Turkish also shows the native-specific pattern our Uzbek data no longer supports
+(native $2.35$ $[1.38, 4.17]$ against History at $1.01$). We do not now believe that
+separation without powering it: it is the same pattern, at $65$ items per subject, that
+dissolved in Uzbek at $393$. Notably History gains $+4.1$ where Uzbek \tarix{} does not,
+so the two benchmarks may genuinely differ in whether history behaves as a knowledge
+subject. Powering \textsc{TurkishMMLU} is the obvious next experiment; until then we
+report the Turkish differential as unconfirmed.
+
+\paragraph{A second optimizer.} \textsc{MIPROv2}~\citep{opsahlong2024mipro}, which
+searches instructions by Bayesian optimization rather than selecting demonstrations,
+produced the same differential magnitude as \bsfs{} on the same items
+($1.75$ $[0.99, 3.14]$ vs.\ $1.63$ $[0.97, 2.79]$; four treated models, both intervals
+including $1$). Since the estimand itself attenuates under powering, we read this only as
+evidence that the phenomenon is not a \bsfs{} implementation quirk.
+
+Its mechanism evidence is sturdier and cuts the other way from payload accounts. On
+gemma4:e4b, \textsc{MIPROv2}'s demonstrations are \emph{more} verbose than \bsfs{}'s
+(mean $755$ vs.\ $631$ reasoning characters) yet produce $15$ truncated and $14$
+unparseable generations against $62$ and $56$, and \ona{} \emph{rises} $3$ points. The
+difference is the instruction it wrote, demanding ``a mandatory, very brief
+justification'' concluding with ``\emph{only} the correct single-letter choice''---it
+enforces the format its own demonstrations violate. Length alone does not determine the
+format tax; the contradiction between demonstrations and instruction does.
+
+\section{Discussion}
+
+The stable result is that automatic prompt optimization is not a uniform improvement but
+a \emph{reallocation}. It buys reasoning accuracy; it does not buy knowledge accuracy;
+and on this benchmark those offset each other closely enough that the aggregate metric
+reports nothing happened. For a national-language deployment this is the worst possible failure mode: the
+number used to justify shipping is exactly the number that cannot see the cost.
+
+\paragraph{On our own corrections.} Two claims in our first pass did not survive
+contact with more data: that the harm was native-language-specific, and that a
+brevity-constraint metric repaired it. Both were measured carefully at
+$n{\approx}100$---paired, exact, corrected, placebo-controlled---and both dissolved when
+powered. We think the generalisable lesson is not that we were careless but that
+subject-level audits at that scale are underpowered for the contrasts they are used to
+draw, and that the standard defences, placebo rotations included, are underpowered in
+exactly the same proportion. A placebo at $n{\approx}100$ certified a separation that a
+placebo at $n{\approx}400$ removed.
+
+\paragraph{What we cannot explain.} \bsfs{}'s demonstrations underperform random draws
+from the same correct pool and underperform no demonstrations at all. Subject mix, length
+and compliance are each measured and null. But the optimizer's selection is also
+near-degenerate under a fixed pool ordering---eight distinct demonstrations across six
+models---so we cannot yet separate a bad selection \emph{rule} from a bad selection.
+That separation is the experiment we would run next.
+
+Four recommendations follow. (1)~\textbf{Audit per subject, not in aggregate}, and on
+the deployment configuration. (2)~\textbf{Power the audit}: our $n{\approx}100$ analysis
+was wrong in a specific, confident and reproducible way. (3)~\textbf{Randomise the pool ordering per model, and check what was selected}: with a
+fixed seed the optimizer returned near-identical demonstrations for models spanning an
+order of magnitude in size.
+(4)~\textbf{Score parse failures separately} from knowledge errors.
+
+\section*{Limitations}
+\paragraph{Scale is uneven across sections.} The audit (\S\ref{sec:powered}) rests on
+$5{,}058$ held-out paired items and is the paper's firmest result. The demonstration
+ablation (\S\ref{sec:demos}) rests on $1{,}200$ paired observations and, for its
+substitution contrast, on a single effective \bsfs{} draw; the Turkish and
+\textsc{MIPROv2} arms rest on $n{\approx}65$ and $n{\approx}100$ per model. Given that we
+have twice overturned our own $n{\approx}100$ findings, those sections should be read as
+suggestive, and we say where each stands rather than presenting a uniform confidence.
+\paragraph{Powering changes two variables.} The replication corpus is both larger and
+different material. Baseline accuracies are comparable, but corpus shift is not fully
+separable from sample size here.
+\paragraph{Greedy decoding is not reproducible for every model.} Re-running the identical
+CoT program in a second session at temperature $0$, all four qwen models reproduce
+item-for-item ($251/251$); both gemma models do not, changing correctness on $12/100$ and
+$7/100$ \ona{} items, for accuracy drifts of $-2.0$ and $+1.0$ points. That is the floor
+beneath every per-model gemma cell, including the dose-response deltas and the precision
+flips.
+\paragraph{Scope.} Two benchmarks, two languages, two optimizers, inference-time
+prompting only; reflective and reinforcement-style optimizers may differ. The
+\textsc{MIPROv2} arm rests on four treated models, since the optimizer returned the
+baseline unchanged for two under our search budget. Subject-type grouping
+(knowledge/reasoning) is ours and is not the only defensible partition of four subjects.
+
+% acl.sty already issues \bibliographystyle{acl_natbib}; declaring it again here
+% makes BibTeX emit "Illegal, another \bibstyle command".
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\appendix
+
+\section{Supporting Tables and Statements}\label{app:supporting}
+
+\begin{table}[t]\centering\small
+\caption{Every odds ratio we measured, ordered by the number of native items per model
+behind it. All four estimates above $1.6$ come from cells of ${\le}100$; the one built on
+$393$ is $1.25$. The pattern is not specific to a language, a stack, or an optimizer.}
+\label{tab:allors}
+\begin{tabular}{llrc}
+\toprule
+Setting & Optimizer & items & OR (95\% CI) \\
+\midrule
+\textsc{TurkishMMLU}   & \bsfsS{}    & \phantom{0}65 & 2.35 $[1.38, 4.17]$ \\
+DTM split, stack A     & \bsfsS{}    & 100 & 2.27 $[1.37, 3.91]$ \\
+DTM split, stack B     & \textsc{MIPROv2} & 100 & 1.75 $[0.99, 3.14]$ \\
+DTM split, stack B     & \bsfsS{}    & 100 & 1.63 $[0.97, 2.79]$ \\
+\midrule
+\textbf{DTM frozen} & \bsfsS{} & \textbf{393} & \textbf{1.25} $[0.98, 1.61]$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]\centering\small
+\caption{Powered audit, per model. The native subject falls in four of six models, but
+the divergence between the two columns is the point: aggregate movement carries almost no
+information about what happened to the knowledge half. gemma4:e4b is the one model where
+both move together, and it is also the only model with a large format-failure count
+(\S\ref{sec:budget}).}
+\label{tab:permodel}
+\begin{tabular}{lrr}
+\toprule
+Model & $\Delta$ \ona{} & $\Delta$ overall \\
+\midrule
+gemma4:e4b   & $-5.3$ & $-6.6$ \\
+qwen3.5:4b   & $-2.0$ & $+4.2$ \\
+qwen3.5:9b   & $-1.6$ & $-0.2$ \\
+qwen3.6:27b  & $-0.2$ & $+1.5$ \\
+qwen3.5:27b  & $+1.0$ & $+0.6$ \\
+gemma4:31b   & $+1.8$ & $+1.1$ \\
+\midrule
+mean         & $-1.1$ & $+0.1$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]\centering\small
+\caption{Budget dose-response on \ona{} ($\Delta$ CoT${\to}$\bsfs{}, with
+bootstrap-condition truncation counts). Raising the budget improves accuracy in the
+models that truncate and not in the control.}
+\label{tab:dose}
+\begin{tabular}{lrrrr}
+\toprule
+\texttt{max\_tokens} & 256 & 512 & 1024 & 2048 \\
+\midrule
+gemma4:e4b $\Delta$ & $-10$ & $-3$ & $-7$ & $-3$ \\
+\quad truncations & 28 & 16 & 3 & 0 \\
+qwen3.5:9b $\Delta$ & $-9$ & $-5$ & $-5$ & $-5$ \\
+\quad truncations & 13 & 6 & 3 & 5 \\
+gemma4:31b $\Delta$ & $0$ & $+1$ & $0$ & $-2$ \\
+\quad truncations & 0 & 0 & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/fig_decomposition.pdf}
+\caption{Harmful \ona{} flips classified as truncation, format-drift or content
+(markers: flips in the opposite direction). Format failures concentrate entirely in the
+models whose selected demonstration payloads are largest; everywhere else the harm is
+content-side and untouched by any format intervention.}
+\label{fig:decomp}
+\end{figure}
+
+\section*{Ethics Statement}
+DTM derives from publicly available national university-entrance examination materials
+and contains no personal data. Our aim is protective and self-correcting. We report that
+a widely deployed optimization method reallocates accuracy in a way its headline metric
+cannot express; that two of our own central claims required retraction in print after we
+powered them; and that our own proposed repair does not work for the reason we proposed
+it. All corrections appear alongside the claims they revise rather than in a footnote.
+
+\section*{Reproducibility Statement}
+We release the instrumented harness, all per-item logs (${\sim}45{,}000$ generations
+across ten experiments), per-experiment decision memos, the frozen replication loader,
+the unit-tested statistics module, and a one-command verifier that re-derives every
+in-text number from the logs and fails loudly on drift. Splits, option shuffling and
+demonstration draws are deterministic under fixed seeds; \S\ref{sec:regimes} and
+Limitations document where the serving stack is not. Code and logs:
+\url{https://anonymous.4open.science/r/prompt-optimization-audit}.
+
+
+\section{Demonstration Composition ($2{\times}2$)}\label{app:demolab}
+
+The controlled manipulation behind \S\ref{sec:demos}'s subject and length nulls: a CoT
+reference plus the four cells of \{reasoning, native\}$\times$\{short, long\}, four
+demonstrations each drawn from the model's own correct traces, pooled over four models on
+\ona{}, paired exact McNemar under Holm correction (Table~\ref{tab:demolab}). No contrast
+survives correction. Two cells were under-supplied---the native/long pool was empty for
+one model and held a single demonstration for another, because models rarely produce
+verbose native-language reasoning at all. Dropping both changes no verdict.
+
+\begin{table}[h]\centering\small
+\caption{Demonstration subject $\times$ length, pooled over four models on \ona{}.}
+\label{tab:demolab}
+\begin{tabular}{lrrrr}
+\toprule
+Contrast & $b$ & $c$ & $p$ & Holm \\
+\midrule
+reason-short vs.\ CoT & 51 & 33 & .063 & .378 \\
+reason-long vs.\ CoT  & 47 & 34 & .182 & .770 \\
+native-short vs.\ CoT & 38 & 33 & .635 & 1.0 \\
+native-long vs.\ CoT  & 42 & 29 & .154 & .770 \\
+long vs.\ short       & 82 & 79 & .875 & 1.0 \\
+native vs.\ reason    & 78 & 91 & .356 & 1.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Substitution Ablation, Per Model}\label{app:substitution}
+
+Table~\ref{tab:subpermodel} gives the per-model breakdown behind
+Table~\ref{tab:substitution}. \bsfs{}'s selection is the worst arm in three of four
+models and tied in the fourth---though, as \S\ref{sec:demos} notes, those four models
+largely share one selected demonstration set, so these are not four independent
+observations of the selection rule. On qwen3.6:27b the correctness metric and the
+brevity-constrained metric selected the \emph{same} demonstrations (identical payload and
+identical scores), so that model is structurally uninformative about the constraint
+contrast rather than a measured null---the same distinction we draw for untreated
+\textsc{MIPROv2} models.
+
+\begin{table}[h]\centering\small
+\caption{\ona{} accuracy by arm and model; random cells averaged over three seeds.}
+\label{tab:subpermodel}
+\begin{tabular}{lrrrrr}
+\toprule
+Model & CoT & van. & compl. & r-comp & r-non \\
+\midrule
+gemma4:e4b  & 30.0 & 25.0 & 30.0 & 30.7 & 30.3 \\
+qwen3.5:4b  & 33.0 & 28.0 & 31.0 & 30.3 & 30.7 \\
+qwen3.5:9b  & 36.0 & 31.0 & 34.0 & 34.3 & 30.7 \\
+qwen3.6:27b & 34.0 & 30.0 & 30.0 & 33.7 & 36.3 \\
+\midrule
+mean        & 33.3 & 28.5 & 31.3 & 32.3 & 32.0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\end{document}

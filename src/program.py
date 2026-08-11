@@ -71,6 +71,32 @@ def compliant_metric(example, pred, trace=None, letters: str = CHOICE_LETTERS) -
     return metric(example, pred, trace, letters) and is_compliant(getattr(pred, "reasoning", ""))
 
 
+def demo_field(demo, name: str, default: str = "") -> str:
+    """Read a field from a demonstration, whichever form it is in.
+
+    Demos we construct are `dspy.Example` (attribute access); demos restored via
+    `Module.load()` come back as plain dicts (item access). `getattr` on a dict silently
+    returns the default, which would have reported every loaded demonstration as having
+    zero-length reasoning -- and hence as trivially brevity-compliant. Both call sites
+    that inspect saved programs depend on this."""
+    if isinstance(demo, dict):
+        return demo.get(name, default) or default
+    return getattr(demo, name, default) or default
+
+
+def demo_payload(demos) -> dict:
+    """Size of a demonstration set, in the two units the paper quotes: reasoning
+    characters (the register the optimizer imports) and full rendered payload
+    (question + options + reasoning, what actually consumes the context)."""
+    reasoning = [len(demo_field(d, "reasoning")) for d in demos]
+    full = [len(demo_field(d, "question")) + len(demo_field(d, "options"))
+            + len(demo_field(d, "reasoning")) for d in demos]
+    return {"n_demos": len(demos), "reasoning_chars": reasoning,
+            "reasoning_total": sum(reasoning), "payload_total": sum(full),
+            "n_compliant": sum(1 for d in demos
+                               if is_compliant(demo_field(d, "reasoning")))}
+
+
 def rescue_letter(raw: str, letters: str = CHOICE_LETTERS) -> str:
     """Extract an answer letter from a raw completion that the adapter failed to parse."""
     if not raw:

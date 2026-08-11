@@ -1,4 +1,4 @@
-\begin{thebibliography}{15}
+\begin{thebibliography}{20}
 \providecommand{\natexlab}[1]{#1}
 
 \bibitem[{Hazratov et~al.(2026)Hazratov, Mansuraliyev, Asadov, Kayumov, and
@@ -48,11 +48,13 @@ Jessica~M. Lundin, Ada Zhang, Nihal Karim, Hamza Louzan, Victor Wei, David
 \newblock The token tax: Systematic bias in multilingual tokenization.
 \newblock \emph{arXiv preprint arXiv:2509.05486}.
 
-\bibitem[{Meincke et~al.()Meincke, Mollick, and Others}]{meincke2025decreasing}
-Lennart Meincke, Ethan Mollick, and Others.
+\bibitem[{Meincke et~al.(2025)Meincke, Mollick, Mollick, and
+  Shapiro}]{meincke2025decreasing}
+Lennart Meincke, Ethan Mollick, Lilach Mollick, and Dan Shapiro. 2025.
 \newblock Prompting science report 2: The decreasing value of chain of thought
   in prompting.
-\newblock Technical report.
+\newblock Technical report, The Wharton School.
+\newblock ArXiv:2506.07142.
 
 \bibitem[{Opsahl-Ong et~al.(2024)Opsahl-Ong, Ryan, Purtell, Broman, Potts,
   Zaharia, and Khattab}]{opsahlong2024mipro}
@@ -61,6 +63,14 @@ Krista Opsahl-Ong, Michael~J Ryan, Josh Purtell, David Broman, Christopher
 \newblock Optimizing instructions and demonstrations for multi-stage language
   model programs ({MIPROv2}).
 \newblock In \emph{EMNLP}.
+
+\bibitem[{Park et~al.(2025)Park, Kim, Lee, Bae, Choo, and
+  Yoo}]{park2025collapse}
+Cheonbok Park, Jeonghoon Kim, Joosung Lee, Sanghwan Bae, Jaegul Choo, and
+  Kang~Min Yoo. 2025.
+\newblock Cross-lingual collapse: How language-centric foundation models shape
+  reasoning in large language models.
+\newblock \emph{arXiv:2506.05850}.
 
 \bibitem[{Petrov et~al.(2023)Petrov, La~Malfa, Torr, and
   Bibi}]{petrov2023tokenizer}
@@ -75,6 +85,11 @@ Bhaskarjit Sarmah, Sourav Dutta, Suhasya Grigoryan, Mingshu Tiwari, Stefano
 \newblock Do {LLM}s consistently improve with prompt optimization? a
   comparative study of {DSPy} teleprompters.
 \newblock \emph{arXiv:2412.15298}.
+
+\bibitem[{Schut et~al.(2025)Schut, Gal, and Farquhar}]{schut2025english}
+Lisa Schut, Yarin Gal, and Sebastian Farquhar. 2025.
+\newblock Do multilingual {LLM}s think in english?
+\newblock \emph{arXiv:2502.15603}.
 
 \bibitem[{Sprague et~al.(2025)Sprague, Yin, Rodriguez, Jiang, Wadhwa, Singhal,
   Zhao, Ye, Mahowald, and Durrett}]{sprague2025cot}
@@ -104,6 +119,12 @@ Mukhammed Togmanov, Nurdaulet Mukhituly, Diana Turmakhan, Jonibek Mansurov,
   regional knowledge.
 \newblock \emph{arXiv preprint arXiv:2502.12829}.
 
+\bibitem[{Tran et~al.(2025)Tran, O'Sullivan, and Nguyen}]{tran2025pivoted}
+Khanh-Tung Tran, Barry O'Sullivan, and Hoang~D. Nguyen. 2025.
+\newblock Reasoning transfer for an extremely low-resource and endangered
+  language: Bridging languages through sample-efficient language understanding.
+\newblock \emph{arXiv:2504.02890}.
+
 \bibitem[{Wei et~al.(2022)Wei, Wang, Schuurmans, Bosma, Ichter, Xia, Chi, Le,
   and Zhou}]{wei2022cot}
 Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia,
@@ -111,6 +132,13 @@ Jason Wei, Xuezhi Wang, Dale Schuurmans, Maarten Bosma, Brian Ichter, Fei Xia,
 \newblock Chain-of-thought prompting elicits reasoning in large language
   models.
 \newblock In \emph{NeurIPS}.
+
+\bibitem[{Wendler et~al.(2024)Wendler, Veselovsky, Monea, and
+  West}]{wendler2024llamas}
+Chris Wendler, Veniamin Veselovsky, Giovanni Monea, and Robert West. 2024.
+\newblock Do llamas work in english? on the latent language of multilingual
+  transformers.
+\newblock In \emph{ACL}.
 
 \bibitem[{Y\"uksel et~al.(2024)Y\"uksel, K\"oksal, {\c{S}}enel, Korhonen, and
   Sch\"utze}]{turkishmmlu2024}
@@ -120,6 +148,14 @@ Arda Y\"uksel, Abdullatif K\"oksal, L\"utfi~Kerem {\c{S}}enel, Anna Korhonen,
   turkish.
 \newblock In \emph{Findings of EMNLP}.
 \newblock ArXiv:2407.12402.
+
+\bibitem[{Zhong et~al.(2024)Zhong, Cheng, Liu, Jiang, Wan, Chu, Murawaki, and
+  Kurohashi}]{zhong2024english}
+Chengzhi Zhong, Fei Cheng, Qianying Liu, Junfeng Jiang, Zhen Wan, Chenhui Chu,
+  Yugo Murawaki, and Sadao Kurohashi. 2024.
+\newblock Beyond english-centric {LLM}s: What language do multilingual language
+  models think in?
+\newblock \emph{arXiv:2408.10811}.
 
 \bibitem[{Zhu et~al.(2022)Zhu, Luo, and Liu}]{zhu2022rich}
 Zhaowei Zhu, Tianyi Luo, and Yang Liu. 2022.

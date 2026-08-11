@@ -3,7 +3,7 @@
 # run cot+bootstrap via src.run --engine openai, then restore the pre-existing server.
 # Fallback chain per spec: vLLM bf16 -> Ollama Q8 GGUF (noted in results/e6/NOTES.md).
 set -uo pipefail
-cd ~/native-language-erosion
+cd ~/prompt-optimization-audit
 # ~/.cache/huggingface is root-owned on spark-3 (stale root-run artifact); use our own cache.
 export HF_HOME="$HOME/hf_home"
 mkdir -p "$HF_HOME" results/e6
@@ -68,6 +68,6 @@ run_model "google/gemma-4-31b-it" "gemma4:31b-q8_0" "gemma4_31b"
 if [ -n "${APERTUS_CMD:-}" ]; then
   echo "restoring pre-existing server: ${APERTUS_CMD}" >> "$NOTES"
   cd ~ && nohup ${APERTUS_CMD} > ~/apertus_restored.log 2>&1 &
-  cd ~/native-language-erosion
+  cd ~/prompt-optimization-audit
 fi
 echo E6_DONE > e6.done

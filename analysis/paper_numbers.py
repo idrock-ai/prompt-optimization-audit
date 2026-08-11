@@ -5,7 +5,9 @@ source for every in-text number in the paper.
 Scope: e1 (flip decomposition + ladder), e2 (budget dose-response, non-degenerate
 models only), e3 (demo length x subject paired contrasts), e4 (powered
 within-subject residual, paper + replication sets), e5 (fixes shoot-out, merged
-verbatim from results/e5/fixes.json).
+verbatim from results/e5/fixes.json), e7 (TurkishMMLU), e9 (powered CROSS-subject
+arm), e10 (demonstration-substitution ablation), plus the differential/placebo/
+determinism analyses.
 
 Safe to run at ANY pipeline stage -- every section is guarded by an existence
 check on the directory/file it reads, so an experiment that hasn't produced
@@ -83,6 +85,46 @@ def build(root="."):
     e5_fixes = _load_json(os.path.join(root, "results", "e5", "fixes.json"))
     if e5_fixes is not None:
         out["e5_fixes"] = e5_fixes
+
+    # Turkish (E7) and MIPROv2 (E8) flip decompositions, so the format-share number
+    # that bounds the mechanism's reach is exported alongside the DTM one.
+    e7_dir = os.path.join(root, "results", "e7")
+    if glob.glob(os.path.join(e7_dir, "*_items.jsonl")):
+        out["e7"] = decompose_dir(e7_dir, subject="Turkish_Language_and_Literature")
+
+    # Differential-harm estimates and their placebo rotations, keyed by the results
+    # directory they came from. Both are written by their own scripts; merged verbatim.
+    for key, d, fname in (("interaction_original", "main", "interaction.json"),
+                          ("interaction_replication", "e1", "interaction.json"),
+                          ("interaction_turkish", "e7", "interaction.json"),
+                          ("interaction_mipro", "e8", "interaction.json"),
+                          ("placebo_original", "main", "placebo.json"),
+                          ("placebo_replication", "e1", "placebo.json"),
+                          ("placebo_turkish", "e7", "placebo.json")):
+        blob = _load_json(os.path.join(root, "results", d, fname))
+        if blob is not None:
+            out[key] = blob
+
+    # E9 (powered cross-subject) and E10 (substitution ablation). Both are guarded by
+    # existence checks like every other section, so this export works before, during and
+    # after the sweeps.
+    e9_dir = os.path.join(root, "results", "e9")
+    if glob.glob(os.path.join(e9_dir, "*_items.jsonl")):
+        out["e9"] = decompose_dir(e9_dir)
+    for key, d, fname in (("interaction_powered", "e9", "interaction.json"),
+                          # the subject-TYPE contrast: the paper's headline claim as a
+                          # single estimate, rather than two marginal tests read together
+                          ("subject_type_powered", "e9", "subject_type.json"),
+                          ("subject_type_original", "main", "subject_type.json"),
+                          ("placebo_powered", "e9", "placebo.json"),
+                          ("e10_substitution", "e10", "substitution_stats.json")):
+        blob = _load_json(os.path.join(root, "results", d, fname))
+        if blob is not None:
+            out[key] = blob
+
+    determinism = _load_json(os.path.join(root, "results", "determinism.json"))
+    if determinism is not None:
+        out["determinism"] = determinism
 
     return out
 

@@ -28,7 +28,21 @@
    "boot_n": 100,
    "trunc_boot": 5
   },
-  "trend_p": 0.01610947993310224
+  "trend_p": 0.01610947993310224,
+  "monotone": false,
+  "outcome": {
+   "lo_budget": 256,
+   "hi_budget": 2048,
+   "n_paired": 100,
+   "b_lo_right_hi_wrong": 6,
+   "c_lo_wrong_hi_right": 12,
+   "p": 0.2379
+  },
+  "residual": {
+   "budget": 2048,
+   "delta": -5.0,
+   "truncations": 5
+  }
  },
  "gemma4:31b": {
   "256": {
@@ -59,7 +73,21 @@
    "boot_n": 100,
    "trunc_boot": 0
   },
-  "trend_p": 1.0
+  "trend_p": 1.0,
+  "monotone": true,
+  "outcome": {
+   "lo_budget": 256,
+   "hi_budget": 2048,
+   "n_paired": 100,
+   "b_lo_right_hi_wrong": 4,
+   "c_lo_wrong_hi_right": 2,
+   "p": 0.6875
+  },
+  "residual": {
+   "budget": 2048,
+   "delta": -2.0,
+   "truncations": 0
+  }
  },
  "gemma4:e4b": {
   "256": {
@@ -90,7 +118,21 @@
    "boot_n": 100,
    "trunc_boot": 0
   },
-  "trend_p": 1.63182443273657e-11
+  "trend_p": 1.63182443273657e-11,
+  "monotone": true,
+  "outcome": {
+   "lo_budget": 256,
+   "hi_budget": 2048,
+   "n_paired": 100,
+   "b_lo_right_hi_wrong": 5,
+   "c_lo_wrong_hi_right": 13,
+   "p": 0.0963
+  },
+  "residual": {
+   "budget": 2048,
+   "delta": -3.0,
+   "truncations": 0
+  }
  },
  "qwen3.5:27b": {
   "512": {
@@ -100,7 +142,14 @@
    "boot_n": 100,
    "trunc_boot": 0
   },
-  "trend_p": 1.0
+  "trend_p": 1.0,
+  "monotone": true,
+  "outcome": null,
+  "residual": {
+   "budget": 512,
+   "delta": 2.0,
+   "truncations": 0
+  }
  },
  "qwen3.5:4b": {
   "512": {
@@ -110,7 +159,14 @@
    "boot_n": 100,
    "trunc_boot": 1
   },
-  "trend_p": 1.0
+  "trend_p": 1.0,
+  "monotone": true,
+  "outcome": null,
+  "residual": {
+   "budget": 512,
+   "delta": -5.0,
+   "truncations": 1
+  }
  },
  "qwen3.6:27b": {
   "512": {
@@ -120,6 +176,34 @@
    "boot_n": 100,
    "trunc_boot": 1
   },
-  "trend_p": 1.0
+  "trend_p": 1.0,
+  "monotone": true,
+  "outcome": null,
+  "residual": {
+   "budget": 512,
+   "delta": -4.0,
+   "truncations": 1
+  }
+ },
+ "_pooled_outcome": {
+  "treated (truncating models)": {
+   "models": [
+    "gemma4:e4b",
+    "qwen3.5:9b"
+   ],
+   "b": 11,
+   "c": 25,
+   "n": 200,
+   "p": 0.0288
+  },
+  "control": {
+   "models": [
+    "gemma4:31b"
+   ],
+   "b": 4,
+   "c": 2,
+   "n": 100,
+   "p": 0.6875
+  }
  }
 }

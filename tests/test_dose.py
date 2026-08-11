@@ -22,3 +22,33 @@ def test_collect_trend(tmp_path):
     row = table["m"]
     assert [row[b]["trunc_boot"] for b in (256, 512, 1024, 2048)] == [6, 4, 2, 0]
     assert row["trend_p"] < 0.05
+    assert row["monotone"] is True
+
+
+def test_monotonicity_is_reported_not_assumed(tmp_path):
+    """The truncation series can trend significantly without falling at every step --
+    qwen3.5:9b's real series is 13/6/3/5. The flag exists so the paper cannot describe
+    a non-monotone series as monotone."""
+    _mk(tmp_path, 256, 4, 8); _mk(tmp_path, 512, 6, 4)
+    _mk(tmp_path, 1024, 8, 1); _mk(tmp_path, 2048, 10, 3)
+    row = collect(str(tmp_path), budgets=(256, 512, 1024, 2048))["m"]
+    assert row["monotone"] is False
+
+
+def test_outcome_test_is_paired_on_the_accuracy_not_the_truncations(tmp_path):
+    """The trend test only shows the knob turned. The outcome test asks whether native
+    accuracy improved, paired item-by-item between the budget extremes."""
+    _mk(tmp_path, 256, 4, 6); _mk(tmp_path, 2048, 10, 0)
+    row = collect(str(tmp_path), budgets=(256, 2048))["m"]
+    o = row["outcome"]
+    assert o["lo_budget"] == 256 and o["hi_budget"] == 2048 and o["n_paired"] == 10
+    # items 4..9 are wrong at 256 and right at 2048; none regress
+    assert o["c_lo_wrong_hi_right"] == 6 and o["b_lo_right_hi_wrong"] == 0
+    assert o["p"] < 0.05
+    assert row["residual"] == {"budget": 2048, "delta": 0.0, "truncations": 0}
+
+
+def test_outcome_test_absent_for_a_single_budget_cell(tmp_path):
+    """A model present at one budget must not be silently compared against itself."""
+    _mk(tmp_path, 512, 6, 4)
+    assert collect(str(tmp_path), budgets=(512,))["m"]["outcome"] is None

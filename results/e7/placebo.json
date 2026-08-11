@@ -1,0 +1,60 @@
+{
+ "dir": "results/e7",
+ "native": "Turkish_Language_and_Literature",
+ "contrast": "cot -> dspy_bootstrap",
+ "preregistered": false,
+ "rows": [
+  {
+   "subject": "History",
+   "is_native": false,
+   "cot_accuracy": 72.3,
+   "n_items": 390,
+   "mh_odds_ratio": 1.01,
+   "ci95": [
+    0.505,
+    1.93
+   ],
+   "models_agreeing": 2,
+   "models_comparable": 6
+  },
+  {
+   "subject": "Physics",
+   "is_native": false,
+   "cot_accuracy": 68.7,
+   "n_items": 390,
+   "mh_odds_ratio": 0.649,
+   "ci95": [
+    0.327,
+    1.162
+   ],
+   "models_agreeing": 2,
+   "models_comparable": 6
+  },
+  {
+   "subject": "Mathematics",
+   "is_native": false,
+   "cot_accuracy": 66.2,
+   "n_items": 390,
+   "mh_odds_ratio": 0.613,
+   "ci95": [
+    0.331,
+    1.079
+   ],
+   "models_agreeing": 1,
+   "models_comparable": 6
+  },
+  {
+   "subject": "Turkish_Language_and_Literature",
+   "is_native": true,
+   "cot_accuracy": 58.5,
+   "n_items": 390,
+   "mh_odds_ratio": 2.346,
+   "ci95": [
+    1.375,
+    4.17
+   ],
+   "models_agreeing": 5,
+   "models_comparable": 6
+  }
+ ]
+}

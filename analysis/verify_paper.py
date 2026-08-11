@@ -21,6 +21,12 @@ KNOWLEDGE = {"ona_tili", "tarix"}
 REASONING = {"fizika", "matematika"}
 
 
+def roundn(x, n):
+    """n decimals, ties away from zero -- see round1 for why this exists."""
+    m = 10 ** n
+    return math.floor(abs(x) * m + 0.5) / m * (1 if x >= 0 else -1)
+
+
 def round1(x):
     """One decimal, ties away from zero.
 
@@ -130,6 +136,34 @@ def main():
     check("models with OR > 1", 4, sum(1 for v in ors.values() if v and v > 1))
     check("both gemma models invert", True,
           all(v < 1 for m, v in ors.items() if "gemma" in m and v))
+
+    print("\n== Sec. 4: the models do not agree (Table 2, lower rows)")
+    hp, hs = grp_pow["heterogeneity"], grp_small["heterogeneity"]
+    check("powered Cochran Q", 14.9, round(hp["Q"], 1), 0.05)
+    check("powered Q df", 5, hp["df"])
+    check("powered Q p", 0.011, round(hp["p"], 3), 0.0005)
+    check("powered I2 (%)", 66, round(hp["I2"]), 0.5)
+    check("powered: common-OR assumption REJECTED", True, hp["p"] < 0.05)
+    rp = grp_pow["random_effects"]
+    check("powered random-effects OR", 1.33, rp["or"], 0.005)
+    check("RE analytic CI (models exchangeable) spans 1", True,
+          rp["ci95_analytic"][0] < 1.0 < rp["ci95_analytic"][1])
+    check("RE analytic CI low", 0.83, round(rp["ci95_analytic"][0], 2), 0.005)
+    check("RE analytic CI high", 2.14, round(rp["ci95_analytic"][1], 2), 0.005)
+    check("RE cluster-boot CI low", 1.01, round(rp["ci95_cluster_boot"][0], 2), 0.005)
+    check("RE cluster-boot CI high", 1.73, round(rp["ci95_cluster_boot"][1], 2), 0.005)
+    # 86/4000 = 0.0215 exactly; Python's half-to-even would print 0.021
+    check("RE cluster-boot P(OR<=1)", 0.022,
+          roundn(rp["p_or_le_1_cluster_boot"], 3), 0.0005)
+    # the second-order claim: powering EXPOSED the disagreement
+    check("n~100 Cochran Q", 8.5, round(hs["Q"], 1), 0.05)
+    check("n~100 Q p", 0.13, round(hs["p"], 2), 0.005)
+    check("n~100 I2 (%)", 41, round(hs["I2"]), 0.5)
+    check("I2 ROSE under powering (41 -> 66)", True, hp["I2"] > hs["I2"])
+    check("n~100 random-effects OR", 2.53, round(grp_small["random_effects"]["or"], 2), 0.005)
+    nat_small = analyse("results/main", "ona_tili", n_boot=200)["heterogeneity"]
+    check("n~100 native I2 (%)", 20, round(nat_small["I2"]), 0.5)
+    check("n~100 native Q p", 0.28, round(nat_small["p"], 2), 0.005)
 
     print("\n== Sec. 4: null on every scoring")
     e9 = decompose_dir("results/e9")["pooled"]

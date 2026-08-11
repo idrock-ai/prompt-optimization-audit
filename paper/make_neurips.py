@@ -125,7 +125,10 @@ def convert(s):
     tables = ""
     for label, what in (("tab:allors", "Table: every odds ratio"),
                         ("tab:permodel", "Table: powered audit per model"),
-                        ("tab:dose", "Table: budget dose-response")):
+                        ("tab:dose", "Table: budget dose-response"),
+                        # Sec. 5 itself calls this arm an observation it will not promote
+                        # to a finding, so it is the most expendable float in the body.
+                        ("tab:substitution", "Table: demonstration ablation")):
         tables += lift(r"\\begin\{table\}(?:(?!\\end\{table\}).)*?\\label\{" + label
                        + r"\}.*?\\end\{table\}\n", what)
     # Sec. 6's figure: its every number is stated in the text, so the float is

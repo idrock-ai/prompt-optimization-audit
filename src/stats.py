@@ -1,6 +1,6 @@
 """Exact paired statistics for the erosion analyses. Pure stdlib, unit-tested."""
 from __future__ import annotations
-from math import comb, erfc, sqrt
+from math import comb, erfc, exp, lgamma, log, sqrt
 
 
 def mcnemar_exact(b: int, c: int) -> float:
@@ -82,3 +82,116 @@ def mantel_haenszel_or(strata: list[tuple[int, int, int, int]]) -> float:
             num += a * d / n
             den += b * c / n
     return num / den if den else float("inf")
+
+
+# --- heterogeneity across strata ------------------------------------------------
+# Mantel-Haenszel pools an association under the assumption that every stratum shares
+# ONE underlying odds ratio. When strata disagree, that assumption is wrong and the MH
+# interval describes a common effect that does not exist. These functions test the
+# assumption (Cochran's Q, I^2) and provide the estimator that does not make it
+# (DerSimonian-Laird random effects).
+
+
+def _gser(a: float, x: float, itmax: int = 500, eps: float = 1e-12) -> float:
+    """Regularized LOWER incomplete gamma P(a,x) by series; use for x < a+1."""
+    if x <= 0:
+        return 0.0
+    ap, total, term = a, 1.0 / a, 1.0 / a
+    for _ in range(itmax):
+        ap += 1
+        term *= x / ap
+        total += term
+        if abs(term) < abs(total) * eps:
+            break
+    return total * exp(-x + a * log(x) - lgamma(a))
+
+
+def _gcf(a: float, x: float, itmax: int = 500, eps: float = 1e-12) -> float:
+    """Regularized UPPER incomplete gamma Q(a,x) by modified Lentz continued
+    fraction; use for x >= a+1."""
+    tiny = 1e-300
+    b = x + 1.0 - a
+    c, d = 1.0 / tiny, 1.0 / b if b else 1.0 / tiny
+    h = d
+    for i in range(1, itmax + 1):
+        an = -i * (i - a)
+        b += 2.0
+        d = an * d + b
+        if abs(d) < tiny:
+            d = tiny
+        c = b + an / c
+        if abs(c) < tiny:
+            c = tiny
+        d = 1.0 / d
+        delta = d * c
+        h *= delta
+        if abs(delta - 1.0) < eps:
+            break
+    return h * exp(-x + a * log(x) - lgamma(a))
+
+
+def chisq_sf(x: float, df: int) -> float:
+    """P(chi^2_df > x). Implemented here because the project carries no scipy."""
+    if df <= 0 or x <= 0:
+        return 1.0
+    a, xx = df / 2.0, x / 2.0
+    return 1.0 - _gser(a, xx) if xx < a + 1.0 else _gcf(a, xx)
+
+
+def log_or_strata(strata: list[tuple[int, int, int, int]]) -> list[tuple[float, float]]:
+    """[(log OR, variance of log OR)] per stratum of [[a, b], [c, d]].
+
+    A Haldane-Anscombe 0.5 is added to every cell ONLY when some cell is zero, which
+    would otherwise send the log odds ratio to +-inf. Applying it unconditionally would
+    shift the point estimates away from the uncorrected ones the paper reports, so we
+    correct only where the estimate is undefined."""
+    out = []
+    for a, b, c, d in strata:
+        if a + b == 0 or c + d == 0:
+            continue                      # stratum carries no information at all
+        if min(a, b, c, d) == 0:
+            a, b, c, d = a + 0.5, b + 0.5, c + 0.5, d + 0.5
+        out.append((log((a * d) / (b * c)), 1 / a + 1 / b + 1 / c + 1 / d))
+    return out
+
+
+def heterogeneity(strata: list[tuple[int, int, int, int]]) -> dict:
+    """Cochran's Q, its p-value, I^2 and the DerSimonian-Laird tau^2.
+
+    I^2 is the share of total variation across strata attributable to real between-
+    stratum differences rather than sampling error. Conventional reading: 25% low,
+    50% moderate, 75% high. Q is notoriously underpowered with few strata, so a
+    non-significant Q with a large I^2 is evidence of heterogeneity, not against it."""
+    yv = log_or_strata(strata)
+    k = len(yv)
+    if k < 2:
+        return {"k": k, "Q": None, "df": 0, "p": None, "I2": None, "tau2": 0.0}
+    w = [1 / v for _, v in yv]
+    sw = sum(w)
+    ybar = sum(wi * yi for wi, (yi, _) in zip(w, yv)) / sw
+    q = sum(wi * (yi - ybar) ** 2 for wi, (yi, _) in zip(w, yv))
+    df = k - 1
+    denom = sw - sum(wi * wi for wi in w) / sw
+    return {"k": k, "Q": q, "df": df, "p": chisq_sf(q, df),
+            "I2": max(0.0, (q - df) / q) * 100 if q > 0 else 0.0,
+            "tau2": max(0.0, (q - df) / denom) if denom > 0 else 0.0}
+
+
+def dersimonian_laird(strata: list[tuple[int, int, int, int]]) -> dict:
+    """Random-effects pooled odds ratio: does NOT assume a common effect.
+
+    Each stratum is weighted by 1/(v_i + tau^2), so between-stratum variance widens
+    the interval instead of being ignored. Where MH answers "what is the common odds
+    ratio", this answers "what is the mean of the distribution of odds ratios" -- the
+    right question once Q/I^2 say the strata disagree."""
+    yv = log_or_strata(strata)
+    if not yv:
+        return {"or": float("nan"), "ci95": (float("nan"), float("nan")),
+                "se": float("nan"), "tau2": 0.0}
+    tau2 = heterogeneity(strata)["tau2"]
+    w = [1 / (v + tau2) for _, v in yv]
+    sw = sum(w)
+    ybar = sum(wi * yi for wi, (yi, _) in zip(w, yv)) / sw
+    se = sqrt(1 / sw)
+    return {"or": exp(ybar), "ci95": (exp(ybar - 1.96 * se), exp(ybar + 1.96 * se)),
+            "se": se, "tau2": tau2}

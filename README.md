@@ -56,21 +56,32 @@ odds ratio over discordant flips, stratified by model, item-cluster bootstrap):
 
 | Contrast | at n≈100/model | **powered (n=393/model)** |
 |---|---|---|
-| **knowledge vs. reasoning** | 2.67 `[1.53, 5.05]` | **1.40 `[1.08, 1.81]`**, P(OR≤1)=.008 |
+| **knowledge vs. reasoning** (Mantel–Haenszel) | 2.67 `[1.53, 5.05]` | **1.40 `[1.08, 1.81]`**, P(OR≤1)=.008 |
+| — random effects (models exchangeable) | 2.53 `[1.17, 5.45]` | 1.33 `[0.83, 2.14]` |
+| — *I²* across models | 41% | **66%** (Q p=.011) |
 | native vs. rest | 2.27 `[1.37, 3.91]` | 1.25 `[0.98, 1.61]` |
 | `tarix` (other knowledge subject) | 1.04 `[0.57, 1.94]` | 1.16 `[0.82, 1.64]` |
 
-The subject-type split **attenuates under powering but survives** — its interval still
-excludes 1. The native-language contrast attenuates and **dissolves**. That difference is
-the paper.
+The subject-type split **attenuates under powering but survives** — where the
+native-language contrast attenuates and **dissolves**. That difference is the paper.
+
+**But the models do not agree, and we test that rather than assert it.** Cochran's Q
+rejects the common-odds-ratio assumption behind Mantel–Haenszel (Q=14.9, df=5, p=.011,
+I²=66%). A random-effects estimate gives 1.33, and its interval depends on what you
+generalise over: treating the six models as exchangeable spans 1 (`[0.83, 2.14]`);
+holding them fixed and resampling items as clusters gives `[1.01, 1.73]`. So the
+reallocation is claimed **across items, not across models** — established for the six we
+ran, not for models in general.
+
+A second-order finding falls out of this: at n≈100 the same test sees no significant
+heterogeneity (I²=41%, and 20% for the native contrast). **Powering did not only shrink
+the effect — it revealed that the models never agreed.** Small samples conceal
+disagreement as well as manufacture effects, and a placebo rotation cannot catch it,
+because rotating the label leaves the pooling assumption untouched.
 
 ```bash
-python analysis/interaction.py results/e9 --native ona_tili,tarix   # the 1.40
+python analysis/interaction.py results/e9 --native ona_tili,tarix   # OR, Q, I², DL
 ```
-
-**Stated honestly:** the pooled odds ratio is heterogeneous. Four models fall between
-1.22 and 2.42; both gemma models invert (0.59, 0.66). It summarises a direction four of
-six models share, not an effect all six express. `verify_paper.py` asserts this.
 
 ## What we retracted
 
@@ -113,8 +124,9 @@ point. Regenerate with
 
 ### Caveats we surface rather than bury
 
-- **The subject-type odds ratio is heterogeneous** — 4/6 models above 1, both gemma
-  models below. Mantel–Haenszel assumes a common OR; these strata do not supply one.
+- **The subject-type odds ratio is heterogeneous, significantly so** — 4/6 models above
+  1, both gemma models below; Q p=.011, I²=66%. Mantel–Haenszel assumes a common OR and
+  these strata do not supply one, so the claim is scoped to items, not models.
 - **Powering changed two variables at once**: the replication corpus is both larger and
   *different material*. Baseline accuracies are comparable (`ona_tili` 35.8 vs ~33;
   `tarix` 55.9 vs 50.7), so we do not think corpus shift explains the convergence, but

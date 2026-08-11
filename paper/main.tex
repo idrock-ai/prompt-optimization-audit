@@ -46,7 +46,9 @@ subjects ($+2.3$, $p{=}0.029$) and does not improve knowledge subjects ($-1.2$,
 $p{=}0.15$), leaving overall accuracy flat ($+0.1$, $p{=}0.92$). The reasoning gain and
 the knowledge shortfall offset each other, so a practitioner reading one number sees
 nothing at all. Tested directly rather than as two marginal tests, the reallocation is
-significant: a knowledge-versus-reasoning odds ratio of $1.40$ $[1.08, 1.81]$.
+significant across items (knowledge-versus-reasoning odds ratio $1.40$ $[1.08, 1.81]$)
+but not across models, which do not share a common effect ($I^2{=}66\%$; treating models
+as exchangeable gives $1.33$ $[0.83, 2.14]$).
 The users' own language is simply a knowledge subject: it is not distinguishable from
 the benchmark's other knowledge subject, which fares marginally worse ($-1.1$ vs.\
 $-1.4$). We report this against our own initial finding, which the same data overturns.
@@ -230,12 +232,24 @@ survives powering: the same estimator falls from $2.67$ to $1.40$ and still excl
 where the native contrast falls from $2.27$ to $1.25$ and no longer does. The
 reallocation is the finding; the language was the coincidence.
 
-One weakness in it, of the kind this paper has learned to state. Mantel--Haenszel assumes
-a common odds ratio and these strata are heterogeneous: four models fall between $1.22$
-and $2.42$ while both gemma models invert ($0.59$, $0.66$). The interval summarises a
-direction four of six models share, not an effect all six express---and gemma4:e4b, one
-of the two that invert, is also the model whose format failures dominate
-\S\ref{sec:budget}.
+\paragraph{But the models do not agree.} Mantel--Haenszel assumes the strata share one
+odds ratio, and Cochran's $Q$ rejects that ($Q{=}14.9$, $\mathrm{df}{=}5$, $p{=}0.011$,
+$I^2{=}66\%$): two thirds of the between-model variation is real, not sampling error.
+Four models fall between $1.22$ and $2.42$; both gemma models invert ($0.59$, $0.66$). A
+DerSimonian--Laird random-effects estimate gives $1.33$, and its interval depends on what
+one generalises over---treating the six models as exchangeable spans $1$
+($[0.83, 2.14]$), while holding them fixed and resampling items as clusters gives
+$[1.01, 1.73]$ ($P(\mathrm{OR}{\le}1){=}0.022$). We therefore claim the reallocation
+\emph{across items} and not \emph{across models}: established for the six we ran, not for
+models in general. Table~\ref{tab:permodel} shows that divergence descriptively
+($-6.6$ to $+4.2$ overall); this is it tested.
+
+\paragraph{Powering exposes disagreement, not only shrinkage.} At $n{\approx}100$ the
+same test finds no significant heterogeneity ($Q{=}8.5$, $p{=}0.13$, $I^2{=}41\%$; the
+native contrast lower still, $I^2{=}20\%$, $p{=}0.28$). The small-sample analysis did not
+only overstate the effect---it made six models look as though they agreed. A placebo
+rotation cannot catch that: it rotates the label and leaves the pooling assumption
+untouched.
 
 \paragraph{The reallocation begins before the optimizer.} Climbing the full prompting
 ladder on the benchmark split (means over six models, \ona{}/mathematics): direct
@@ -253,7 +267,11 @@ subject than for the other three? At $n{\approx}100$ per model the native subjec
 separates cleanly from the other knowledge subject; on the frozen corpus at $4\times$
 the scale they converge. What survives is a reasoning/knowledge split, and the last row
 estimates it directly: grouping the label by subject type attenuates under powering but
-retains an interval excluding $1$, where the native contrast does not.}
+retains an interval excluding $1$, where the native contrast does not. The two rows
+beneath it are the cost of that claim: the models do not share a common odds ratio
+($I^2{=}66\%$), and an estimate that treats them as exchangeable spans $1$. Powering
+raised $I^2$ from $41\%$ to $66\%$---the small-sample analysis concealed the
+disagreement as well as inflating the effect.}
 \label{tab:placebo}
 \setlength{\tabcolsep}{1.5pt}
 \begin{tabular}{lcc}
@@ -268,6 +286,8 @@ mathematics & 0.47 $[0.20, 0.98]$ & 0.75 $[0.56, 1.02]$ \\
 native $-$ history gap & $1.23$ & $0.09$ \\
 \midrule
 knowledge vs.\ reasoning & \textbf{2.67} $[1.53, 5.05]$ & \textbf{1.40} $[1.08, 1.81]$ \\
+\quad random effects & 2.53 $[1.17, 5.45]$ & 1.33 $[0.83, 2.14]$ \\
+\quad $I^2$ (models) & 41\% & \textbf{66\%} \\
 \bottomrule
 \end{tabular}
 \end{table}

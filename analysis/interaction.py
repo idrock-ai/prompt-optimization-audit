@@ -32,7 +32,8 @@ Usage: python analysis/interaction.py results/e7 --native Turkish_Language_and_L
 """
 import argparse, glob, json, random, sys
 sys.path.insert(0, ".")
-from src.stats import fisher_exact_2x2, mantel_haenszel_or
+from src.stats import (fisher_exact_2x2, mantel_haenszel_or,
+                       heterogeneity, dersimonian_laird)
 
 COND_A, COND_B = "cot", "dspy_bootstrap"   # defaults; override per call / via CLI
 
@@ -189,13 +190,23 @@ def analyse(d, native, n_boot=4000, seed=42, cond_a=COND_A, cond_b=COND_B,
     # item-cluster bootstrap: resample items with replacement, carrying every model's
     # response for a drawn item along with it
     rng = random.Random(seed)
-    boots = []
+    boots, re_boots = [], []
     for _ in range(n_boot):
         samp = [rng.choice(qids) for _ in qids]
-        v = mantel_haenszel_or(list(strata_from(rows, samp).values()))
+        st = list(strata_from(rows, samp).values())
+        v = mantel_haenszel_or(st)
         if v != float("inf"):
             boots.append(v)
+        # The DL interval assumes strata are INDEPENDENT. They are not -- every model
+        # answers the same items -- so the analytic interval is anti-conservative in
+        # exactly the way the naive Fisher p is. Re-estimating DL inside the item
+        # cluster bootstrap gives an interval that respects both the between-model
+        # heterogeneity and the shared items.
+        r = dersimonian_laird(st)["or"]
+        if r == r and r not in (float("inf"), 0.0):
+            re_boots.append(r)
     boots.sort()
+    re_boots.sort()
     # always present, even when no draw yielded a finite OR (no non-native discordance)
     out["bootstrap"] = {"n": len(boots), "seed": seed, "ci95": None, "p_or_le_1": None}
     if boots:
@@ -203,6 +214,22 @@ def analyse(d, native, n_boot=4000, seed=42, cond_a=COND_A, cond_b=COND_B,
                                     round(boots[int(0.975 * len(boots))], 3)]
         out["bootstrap"]["p_or_le_1"] = round(
             sum(1 for x in boots if x <= 1.0) / len(boots), 4)
+    # Does the common-odds-ratio assumption behind the MH estimate actually hold?
+    strata_list = list(per_model.values())
+    out["heterogeneity"] = {k: (round(v, 4) if isinstance(v, float) else v)
+                            for k, v in heterogeneity(strata_list).items()}
+    dl = dersimonian_laird(strata_list)
+    out["random_effects"] = {
+        "or": round(dl["or"], 3),
+        "ci95_analytic": [round(dl["ci95"][0], 3), round(dl["ci95"][1], 3)],
+        "tau2": round(dl["tau2"], 4),
+        "ci95_cluster_boot": ([round(re_boots[int(0.025 * len(re_boots))], 3),
+                               round(re_boots[int(0.975 * len(re_boots))], 3)]
+                              if re_boots else None),
+        "p_or_le_1_cluster_boot": (round(sum(1 for x in re_boots if x <= 1.0)
+                                         / len(re_boots), 4) if re_boots else None),
+    }
+
     # how many models point the same way (direction consistency, not a formal test)
     dirs = [r for r in out["per_model"].values()
             if r["native_harm_share"] is not None and r["other_harm_share"] is not None]
@@ -255,6 +282,14 @@ def main():
         print(f"item-cluster bootstrap ({b['n']} draws, seed {b['seed']}): "
               f"95% CI {b['ci95']}  P(OR<=1)={b['p_or_le_1']}")
     print(f"direction consistent in {out['models_agreeing']}/{out['models_comparable']} models")
+    h, re = out["heterogeneity"], out["random_effects"]
+    if h["Q"] is not None:
+        print(f"\nheterogeneity: Q={h['Q']:.2f} (df={h['df']}, p={h['p']:.4f})  "
+              f"I2={h['I2']:.1f}%  tau2={h['tau2']:.4f}")
+        print(f"random effects (DerSimonian-Laird): OR {re['or']}  "
+              f"analytic CI {re['ci95_analytic']}")
+        print(f"   + item-cluster bootstrap CI {re['ci95_cluster_boot']}  "
+              f"P(OR<=1)={re['p_or_le_1_cluster_boot']}")
     if out["excluded_models"]:
         print(f"EXCLUDED as untreated: {', '.join(out['excluded_models'])}")
     if out["uninformative_models"]:

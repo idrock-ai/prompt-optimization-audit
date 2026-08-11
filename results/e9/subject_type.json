@@ -90,6 +90,27 @@
   ],
   "p_or_le_1": 0.008
  },
+ "heterogeneity": {
+  "k": 6,
+  "Q": 14.8823,
+  "df": 5,
+  "p": 0.0109,
+  "I2": 66.403,
+  "tau2": 0.2304
+ },
+ "random_effects": {
+  "or": 1.33,
+  "ci95_analytic": [
+   0.827,
+   2.138
+  ],
+  "tau2": 0.2304,
+  "ci95_cluster_boot": [
+   1.011,
+   1.733
+  ],
+  "p_or_le_1_cluster_boot": 0.0215
+ },
  "models_agreeing": 4,
  "models_comparable": 6
 }

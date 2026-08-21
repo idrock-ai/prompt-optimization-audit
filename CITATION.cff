@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this software or its results, please cite it as below. A paper citation will replace this once the paper is published."
+title: "prompt-optimization-audit"
+type: software
+license: MIT
+repository-code: "https://github.com/idrock-ai/prompt-optimization-audit"
+url: "https://idrock.uz"
+date-released: "2026-08-11"
+abstract: "A powered, subject-level audit of prompt optimization claims on a subject-partitioned Uzbek university-entrance benchmark, with full reproduction scripts for all experiments."
+keywords:
+  - prompt-optimization
+  - llm-evaluation
+  - reproducibility
+  - uzbek
+authors:
+  - family-names: "Asadov"
+    given-names: "Dovud"
+    affiliation: "IDROCK AI Lab, New Uzbekistan University"
+  - family-names: "Kayumov"
+    given-names: "Abduaziz"
+    affiliation: "New Uzbekistan University"
+  - family-names: "Toshnazarov"
+    given-names: "Qobiljon"
+    affiliation: "New Uzbekistan University"
+  - family-names: "Hazratov"
+    given-names: "Mardonbek"
+    affiliation: "IDROCK AI Lab, New Uzbekistan University"
+  - family-names: "Mansuraliyev"
+    given-names: "Husanboy"
+    affiliation: "IDROCK AI Lab, New Uzbekistan University"
+  - name: "IDROCK AI Lab, New Uzbekistan University"
